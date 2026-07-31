@@ -37,6 +37,20 @@ Open `http://localhost:8000/docs` for interactive Swagger documentation.
 
 A mobile-first React PWA lives in `frontend/` and talks to this API. See [frontend/README.md](frontend/README.md) for setup, including testing it on your phone.
 
+## Deployment (Docker)
+
+The whole stack (Postgres + API + web UI behind nginx) runs as a Docker Compose stack — handy for trying it out on a home server / Proxmox LXC with Docker installed.
+
+```bash
+cp .env.example .env   # set POSTGRES_PASSWORD at least
+docker compose build   # or: docker compose pull, once images are published by CI
+docker compose up -d
+```
+
+The web UI is then at `http://<host>:8080` — nginx serves the built PWA and reverse-proxies `/api/*` to the backend, so the browser never needs CORS. The backend container applies Alembic migrations on startup before serving.
+
+Images are built and pushed to `ghcr.io/salvatoretorsello/cashflow-{backend,frontend}` by [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml) on every push to `main` (tag `latest`) and on version tags (`vX.Y.Z`). `docker-compose.yml` references those images directly, so on a deploy host you can skip building from source with `docker compose pull && docker compose up -d`.
+
 ## Developer Hints
 
 - **Database:** SQLite is used by default. Switch to PostgreSQL by changing `DATABASE_URL` in `.env`.

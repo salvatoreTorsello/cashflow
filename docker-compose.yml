@@ -1,0 +1,44 @@
+name: cashflow
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cashflow}
+      POSTGRES_USER: ${POSTGRES_USER:-cashflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cashflow}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cashflow} -d ${POSTGRES_DB:-cashflow}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: ${REGISTRY_NAMESPACE:-ghcr.io/salvatoretorsello}/cashflow-backend:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-cashflow}:${POSTGRES_PASSWORD:-cashflow}@db:5432/${POSTGRES_DB:-cashflow}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    image: ${REGISTRY_NAMESPACE:-ghcr.io/salvatoretorsello}/cashflow-frontend:${IMAGE_TAG:-latest}
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  db_data:
