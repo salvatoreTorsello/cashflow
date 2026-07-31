@@ -8,6 +8,9 @@
   --color-accent-contrast: #ffffff;
   --color-positive: #15803d;
   --color-negative: #b91c1c;
+  /* Chart mark colors only (never text) — validated status tokens, same value in both modes. */
+  --chart-good: #0ca30c;
+  --chart-critical: #d03b3b;
   --radius: 14px;
   --nav-height: 64px;
   color-scheme: light;
@@ -354,4 +357,92 @@ body {
   .app-main {
     padding-top: 32px;
   }
+}
+
+/* Chart (BurnRateChart) */
+
+.chart-placeholder {
+  height: 220px;
+}
+
+.chart-bar-label {
+  fill: var(--color-text-muted);
+  font-size: 11px;
+  font-family: inherit;
+}
+
+.chart-tooltip {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.chart-tooltip-label {
+  color: var(--color-text-muted);
+}
+
+.chart-tooltip-value {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+/* Timeline (upcoming commitments) */
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 4px;
+  position: relative;
+}
+
+.timeline-item {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding-bottom: 16px;
+}
+
+.timeline-item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 14px;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-border);
+}
+
+.timeline-dot {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  margin-top: 4px;
+}
+
+.timeline-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.timeline-date {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
 }

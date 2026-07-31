@@ -1,10 +1,20 @@
-import { useDashboard } from '../api/hooks'
-import { formatCurrency, formatDate } from '../lib/format'
+import { Suspense, lazy } from 'react'
+import { useCommitments, useDashboard, useTransactions } from '../api/hooks'
+import { monthlyNetCashFlow } from '../lib/aggregate'
+import { formatCurrency } from '../lib/format'
 import StatCard from '../components/StatCard'
 import AsyncState from '../components/AsyncState'
+import CommitmentsTimeline from '../components/CommitmentsTimeline'
+
+// Recharts is the single heaviest dependency in the bundle — defer it off the critical path.
+const BurnRateChart = lazy(() => import('../components/BurnRateChart'))
+
+const UPCOMING_LIMIT = 5
 
 export default function DashboardPage() {
   const { data, isLoading, error } = useDashboard()
+  const { data: transactions } = useTransactions()
+  const { data: upcoming, isLoading: upcomingLoading, error: upcomingError } = useCommitments('pending')
 
   return (
     <div className="page">
@@ -29,20 +39,18 @@ export default function DashboardPage() {
           </div>
 
           <section className="section">
-            <h2 className="section-title">Next commitment</h2>
-            {data.next_commitment ? (
-              <div className="list-card">
-                <div className="list-card-main">
-                  <span className="list-card-title">{data.next_commitment.description ?? data.next_commitment.category.name}</span>
-                  <span className="list-card-subtitle">
-                    {data.next_commitment.category.name} · due {formatDate(data.next_commitment.due_date)}
-                  </span>
-                </div>
-                <span className="list-card-amount negative">{formatCurrency(data.next_commitment.amount)}</span>
-              </div>
-            ) : (
-              <p className="async-state">No pending commitments.</p>
+            <h2 className="section-title">Cash flow by month</h2>
+            {transactions && (
+              <Suspense fallback={<div className="chart-placeholder" />}>
+                <BurnRateChart data={monthlyNetCashFlow(transactions)} />
+              </Suspense>
             )}
+          </section>
+
+          <section className="section">
+            <h2 className="section-title">Upcoming</h2>
+            <AsyncState isLoading={upcomingLoading} error={upcomingError} isEmpty={upcoming?.length === 0} emptyLabel="No pending commitments." />
+            {upcoming && <CommitmentsTimeline commitments={upcoming.slice(0, UPCOMING_LIMIT)} />}
           </section>
         </>
       )}

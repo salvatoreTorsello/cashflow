@@ -224,12 +224,12 @@ REST API with full CRUD for transactions and commitments, promotion workflow, an
 
 ### Step 2 — Web Dashboard (Current)
 A React + Vite mobile-first PWA (`frontend/`) that consumes the API — chosen over Dash/Streamlit specifically because those frameworks are built around a wide-desktop layout that doesn't reflow well on a phone. Ships with:
-- Home: Balance, Safe Margin, Pending Commitments, Next Due
+- Home: Balance, Safe Margin, Pending Commitments, a monthly net-cash-flow chart, and a timeline of upcoming commitments
 - Transaction history + creation form
 - Commitment list (filterable by status) + creation form + one-tap "Pay" (execute)
 - Category list + creation form
 
-Still open: a timeline calendar of upcoming commitments, historical burn-rate charts, and offline queuing of writes (the service worker currently only precaches the app shell, not API data).
+Still open: offline queuing of writes (the service worker currently only precaches the app shell, not API data).
 
 ### Step 3 — Telegram Bot
 A stateless bot built with `python-telegram-bot`. It calls the backend REST API.
