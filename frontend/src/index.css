@@ -1,0 +1,357 @@
+:root {
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-accent: #0f766e;
+  --color-accent-contrast: #ffffff;
+  --color-positive: #15803d;
+  --color-negative: #b91c1c;
+  --radius: 14px;
+  --nav-height: 64px;
+  color-scheme: light;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0b1220;
+    --color-surface: #131c2e;
+    --color-border: #223049;
+    --color-text: #e2e8f0;
+    --color-text-muted: #94a3b8;
+    --color-accent: #2dd4bf;
+    --color-accent-contrast: #04120f;
+    --color-positive: #4ade80;
+    --color-negative: #f87171;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px 16px calc(var(--nav-height) + 24px);
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 4px 0 20px;
+}
+
+.section {
+  margin-top: 28px;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin: 0 0 10px;
+}
+
+/* Bottom navigation */
+
+.bottom-nav {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: space-around;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  height: var(--nav-height);
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex: 1;
+  text-decoration: none;
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.bottom-nav-item svg {
+  width: 22px;
+  height: 22px;
+}
+
+.bottom-nav-item.active {
+  color: var(--color-accent);
+}
+
+/* Stat cards */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stat-card {
+  grid-column: span 1;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-card:first-child {
+  grid-column: span 2;
+}
+
+.stat-card-label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.stat-card-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.stat-card--positive .stat-card-value {
+  color: var(--color-positive);
+}
+
+.stat-card--negative .stat-card-value {
+  color: var(--color-negative);
+}
+
+/* Forms */
+
+.form-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.field input,
+.field select {
+  font-size: 1rem;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 44px;
+}
+
+.btn-primary,
+.btn-secondary {
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0 16px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-primary {
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* Lists */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.list-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.list-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.list-card-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list-card-subtitle {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.list-card-amount {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.list-card-amount.positive {
+  color: var(--color-positive);
+}
+
+.list-card-amount.negative {
+  color: var(--color-negative);
+}
+
+.list-card-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+/* Tabs */
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+}
+
+.tab {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.tab.active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+/* Badges & chips */
+
+.badge {
+  text-transform: capitalize;
+}
+
+.badge--paid {
+  color: var(--color-positive);
+}
+
+.badge--pending {
+  color: var(--color-text-muted);
+}
+
+.badge--confirmed {
+  color: var(--color-accent);
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+}
+
+/* Async states */
+
+.async-state {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  padding: 8px 0;
+}
+
+.async-state--error {
+  color: var(--color-negative);
+}
+
+@media (min-width: 481px) {
+  .app-main {
+    padding-top: 32px;
+  }
+}

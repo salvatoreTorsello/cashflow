@@ -30,6 +30,10 @@ uvicorn app.main:app --reload
 The API will be available at `http://localhost:8000`.  
 Open `http://localhost:8000/docs` for interactive Swagger documentation.
 
+## Web UI
+
+A mobile-first React PWA lives in `frontend/` and talks to this API. See [frontend/README.md](frontend/README.md) for setup, including testing it on your phone.
+
 ## Developer Hints
 
 - **Database:** SQLite is used by default. Switch to PostgreSQL by changing `DATABASE_URL` in `.env`.
@@ -50,6 +54,7 @@ Open `http://localhost:8000/docs` for interactive Swagger documentation.
 | ORM | SQLAlchemy 2.0 |
 | DB | SQLite (local) / PostgreSQL (prod) |
 | Validation | Pydantic v2 |
+| Web UI | React + Vite (PWA) |
 | Docs | GitHub Pages (Jekyll) |
 
 ## License

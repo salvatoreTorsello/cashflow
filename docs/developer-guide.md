@@ -29,6 +29,7 @@ cashflow/
 │       ├── commitments.py   # Future obligations endpoints
 │       └── dashboard.py     # Summary & analytics endpoints
 ├── alembic/                 # Database migrations
+├── frontend/                # React + Vite mobile-first PWA (see frontend/README.md)
 ├── docs/                    # GitHub Pages documentation
 ├── requirements.txt
 ├── .env.example
@@ -40,7 +41,7 @@ cashflow/
 ### Category
 The fixed set of categories available to transactions and commitments (e.g. `salary`, `house`, `taxes`).
 - `id`, `name` (unique)
-G
+
 Categories are managed through their own endpoints rather than free text, so the set stays consistent and can be listed for use in clients (dashboard, Telegram bot). Transactions and commitments reference a category by `category_id`; attempting to create either with a `category_id` that doesn't exist returns `404`.
 
 On startup, `app/seed.py` idempotently inserts a default set of categories (skipping any that already exist by name):
@@ -215,11 +216,14 @@ Response:
 ### Step 1 — Backend (Current)
 REST API with full CRUD for transactions and commitments, promotion workflow, and dashboard summaries. Testable via Postman and Swagger UI.
 
-### Step 2 — Web Dashboard
-A Plotly Dash or Streamlit application (or a React SPA) that consumes the API. Visualizes:
-- KPI cards: Balance, Safe Margin, Next Due
-- Timeline calendar of upcoming commitments
-- Historical burn-rate charts
+### Step 2 — Web Dashboard (Current)
+A React + Vite mobile-first PWA (`frontend/`) that consumes the API — chosen over Dash/Streamlit specifically because those frameworks are built around a wide-desktop layout that doesn't reflow well on a phone. Ships with:
+- Home: Balance, Safe Margin, Pending Commitments, Next Due
+- Transaction history + creation form
+- Commitment list (filterable by status) + creation form + one-tap "Pay" (execute)
+- Category list + creation form
+
+Still open: a timeline calendar of upcoming commitments, historical burn-rate charts, and offline queuing of writes (the service worker currently only precaches the app shell, not API data).
 
 ### Step 3 — Telegram Bot
 A stateless bot built with `python-telegram-bot`. It calls the backend REST API.
@@ -230,7 +234,7 @@ A stateless bot built with `python-telegram-bot`. It calls the backend REST API.
 - Daily scheduler to poll upcoming commitments and send reminders.
 
 ### Step 4 — Mobile Application
-A Progressive Web App (PWA) or a React Native / Flutter wrapper. The API is ready for JWT-based authentication if multi-user support is required in the future.
+The Step 2 PWA is already installable from a phone browser (Add to Home Screen) and covers the mobile use case. If a deeper native integration is ever needed, a React Native / Flutter wrapper remains an option. The API is ready for JWT-based authentication if multi-user support is required in the future.
 
 ## Contributing
 
