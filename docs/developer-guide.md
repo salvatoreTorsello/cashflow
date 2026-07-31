@@ -40,7 +40,7 @@ cashflow/
 ### Category
 The fixed set of categories available to transactions and commitments (e.g. `salary`, `house`, `taxes`).
 - `id`, `name` (unique)
-
+G
 Categories are managed through their own endpoints rather than free text, so the set stays consistent and can be listed for use in clients (dashboard, Telegram bot). Transactions and commitments reference a category by `category_id`; attempting to create either with a `category_id` that doesn't exist returns `404`.
 
 On startup, `app/seed.py` idempotently inserts a default set of categories (skipping any that already exist by name):
@@ -236,9 +236,6 @@ A Progressive Web App (PWA) or a React Native / Flutter wrapper. The API is read
 4. Submit a pull request.
 
 All documentation is located in the `docs/` folder and is published via GitHub Pages.
-```
-
----
 
 ## How to publish on GitHub Pages
 
@@ -248,15 +245,4 @@ All documentation is located in the `docs/` folder and is published via GitHub P
 4. Choose the branch (e.g., `main` or `master`) and folder `/docs`.
 5. Replace `yourusername` in `docs/_config.yml` with your actual GitHub username.
 
-Once deployed, the User Guide will be at:  
-`https://yourusername.github.io/cashflow/user-guide`
-
----
-
-**To create the zip file locally:**
-
-```bash
-mkdir -p cashflow && cd cashflow
-# create all files above, then:
-cd ..
-zip -r cashflow.zip cashflow/
+Once deployed, the docuementation will be at: `https://yourusername.github.io/cashflow/`
