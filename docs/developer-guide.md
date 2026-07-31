@@ -66,12 +66,14 @@ A commitment can generate one or more transactions (in theory, one per execution
 ## API Reference
 
 ### Categories
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/api/v1/categories` | List all categories |
 | `POST` | `/api/v1/categories` | Create a new category |
 
 ### Transactions
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/api/v1/transactions` | List all transactions |
@@ -79,6 +81,7 @@ A commitment can generate one or more transactions (in theory, one per execution
 | `GET` | `/api/v1/transactions/{id}` | Get single transaction |
 
 ### Commitments
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/api/v1/commitments` | List pending commitments |
@@ -87,6 +90,7 @@ A commitment can generate one or more transactions (in theory, one per execution
 | `GET` | `/api/v1/commitments/upcoming` | List due within N days |
 
 ### Dashboard
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/api/v1/dashboard` | Summary: balance, safe margin, next commitment |
