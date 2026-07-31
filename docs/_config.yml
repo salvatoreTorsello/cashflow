@@ -3,3 +3,4 @@ title: CashFlow
 description: Macro-cashflow management for personal finance
 url: "https://salvatoreTorsello.github.io"
 baseurl: "/cashflow"
+remote_theme: carlosperate/jekyll-theme-rtd@v1.4.0
