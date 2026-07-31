@@ -1,11 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.database import engine, Base, SessionLocal
+from app.database import SessionLocal
 from app.routers import categories, transactions, commitments, dashboard
 from app.seed import seed_categories
-
-Base.metadata.create_all(bind=engine)
 
 db = SessionLocal()
 try:

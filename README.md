@@ -23,6 +23,9 @@ pip install -r requirements.txt
 # Environment
 cp .env.example .env
 
+# Apply database migrations
+alembic -c alembic/alembic.ini upgrade head
+
 # Run
 uvicorn app.main:app --reload
 ```
@@ -37,7 +40,7 @@ A mobile-first React PWA lives in `frontend/` and talks to this API. See [fronte
 ## Developer Hints
 
 - **Database:** SQLite is used by default. Switch to PostgreSQL by changing `DATABASE_URL` in `.env`.
-- **Migrations:** Alembic is pre-configured. Run `alembic init alembic` if you need migrations, then `alembic revision --autogenerate -m "message"`.
+- **Migrations:** Alembic owns the schema — the app no longer auto-creates tables. Run `alembic -c alembic/alembic.ini upgrade head` before starting the server, and after changing `app/models.py` generate a new revision with `alembic -c alembic/alembic.ini revision --autogenerate -m "message"`.
 - **ORM:** SQLAlchemy 2.0 style is used (`Mapped`, `mapped_column`). Classic `session.query` is used in CRUD for readability; feel free to migrate to `select()` if you prefer.
 - **Stateless clients:** The Telegram bot, dashboard, and future mobile app are all stateless API consumers. Keep business logic in the backend.
 

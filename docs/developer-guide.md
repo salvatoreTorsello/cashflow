@@ -124,13 +124,19 @@ For local development, SQLite is pre-configured.
 
 ### Database Initialization
 
-The application auto-creates tables on startup via `Base.metadata.create_all()`.
-
-Alembic is already configured (`alembic/env.py` imports `app.models` so `Base.metadata` picks up every table). To generate and apply migrations:
+Alembic owns the schema. Apply migrations before starting the server:
 
 ```bash
-alembic revision --autogenerate -m "Initial tables"
-alembic upgrade head
+alembic -c alembic/alembic.ini upgrade head
+```
+
+`alembic.ini` lives inside `alembic/` rather than at the repo root, so the `-c alembic/alembic.ini` flag is required every time (a bare `alembic upgrade head` from the repo root won't find it).
+
+After changing `app/models.py`, generate a new revision (`alembic/env.py` imports `app.models` so `Base.metadata` picks up every table):
+
+```bash
+alembic -c alembic/alembic.ini revision --autogenerate -m "message"
+alembic -c alembic/alembic.ini upgrade head
 ```
 
 ### Run the Server
