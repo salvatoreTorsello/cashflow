@@ -60,6 +60,15 @@ class CommitmentOut(CommitmentBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CommitmentUpdate(BaseModel):
+    due_date: Optional[date] = None
+    amount: Optional[Decimal] = Field(None, lt=0)
+    category_id: Optional[int] = None
+    description: Optional[str] = None
+    status: Optional[CommitmentStatus] = None
+    parent_id: Optional[int] = None
+
+
 class DashboardSummary(BaseModel):
     balance: Decimal
     pending_commitments_total: Decimal
