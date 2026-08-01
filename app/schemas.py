@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from decimal import Decimal
 from datetime import date, datetime
 from typing import Optional
@@ -27,6 +27,14 @@ class TransactionBase(BaseModel):
     description: Optional[str] = None
     commitment_id: Optional[int] = None
 
+    @model_validator(mode="after")
+    def check_amount_sign(self):
+        if self.commitment_id is not None and self.amount >= 0:
+            raise ValueError(
+                "amount must be negative when linked to a commitment"
+            )
+        return self
+
 
 class TransactionCreate(TransactionBase):
     pass
@@ -38,6 +46,14 @@ class TransactionOut(TransactionBase):
     category: CategoryOut
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class TransactionUpdate(BaseModel):
+    date: Optional[date] = None
+    amount: Optional[Decimal] = None
+    category_id: Optional[int] = None
+    description: Optional[str] = None
+    commitment_id: Optional[int] = None
 
 
 class CommitmentBase(BaseModel):

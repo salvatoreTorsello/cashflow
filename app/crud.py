@@ -54,6 +54,29 @@ def get_transactions(db: Session):
     )
 
 
+def edit_transaction(
+    db: Session, transaction_id: int, obj: schemas.TransactionUpdate
+):
+    db_obj = (
+        db.query(models.Transaction)
+        .filter(models.Transaction.id == transaction_id)
+        .first()
+    )
+    if not db_obj:
+        return None
+
+    for field, value in obj.model_dump(exclude_unset=True).items():
+        setattr(db_obj, field, value)
+
+    # In case transaction was linked to a commitment, amount should be <= 0
+    if db_obj.commitment_id is not None and db_obj.amount >= 0:
+        raise ValueError("amount must be negative when linked to a commitment")
+
+    db.commit()
+    db.refresh(db_obj)
+    return db_obj
+
+
 ## Commitments
 
 
