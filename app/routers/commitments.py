@@ -47,3 +47,9 @@ def edit(
     if not commitment:
         raise HTTPException(status_code=404, detail="Commitment not found")
     return commitment
+
+
+@router.delete("/{commitment_id}", status_code=204)
+def delete(commitment_id: int, db: Session = Depends(get_db)):
+    if not crud.delete_commitment(db, commitment_id):
+        raise HTTPException(status_code=404, detail="Commitment not found")

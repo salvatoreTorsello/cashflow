@@ -77,6 +77,20 @@ def edit_transaction(
     return db_obj
 
 
+def delete_transaction(db: Session, transaction_id: int):
+    db_obj = (
+        db.query(models.Transaction)
+        .filter(models.Transaction.id == transaction_id)
+        .first()
+    )
+    if not db_obj:
+        return None
+
+    db.delete(db_obj)
+    db.commit()
+    return True
+
+
 ## Commitments
 
 
@@ -137,6 +151,24 @@ def execute_commitment(db: Session, commitment_id: int):
     db.commit()
     db.refresh(tx)
     return tx
+
+
+def delete_commitment(db: Session, commitment_id: int):
+    db_obj = (
+        db.query(models.Commitment)
+        .filter(models.Commitment.id == commitment_id)
+        .first()
+    )
+    if not db_obj:
+        return None
+
+    db.query(models.Transaction).filter(
+        models.Transaction.commitment_id == commitment_id
+    ).update({"commitment_id": None})
+
+    db.delete(db_obj)
+    db.commit()
+    return True
 
 
 def get_next_commitment(db: Session):

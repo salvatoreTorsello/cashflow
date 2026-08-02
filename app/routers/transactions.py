@@ -38,3 +38,9 @@ def edit(
     if not transaction:
         raise HTTPException(status_code=404, detail="Transaction not found")
     return transaction
+
+
+@router.delete("/{transaction_id}", status_code=204)
+def delete(transaction_id: int, db: Session = Depends(get_db)):
+    if not crud.delete_transaction(db, transaction_id):
+        raise HTTPException(status_code=404, detail="Transaction not found")
