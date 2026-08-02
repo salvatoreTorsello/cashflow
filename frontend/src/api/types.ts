@@ -1,5 +1,34 @@
 export type CommitmentStatus = 'pending' | 'confirmed' | 'paid'
 
+export interface User {
+  id: number
+  email: string
+}
+
+export interface RegisterRequest {
+  email: string
+  password: string
+}
+
+export interface LoginRequest {
+  email: string
+  password: string
+}
+
+export interface Workspace {
+  id: number
+  name: string
+  created_at: string
+}
+
+export interface WorkspaceCreate {
+  name: string
+}
+
+export interface WorkspaceUpdate {
+  name: string
+}
+
 export interface Category {
   id: number
   name: string

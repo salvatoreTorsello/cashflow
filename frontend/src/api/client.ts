@@ -7,10 +7,16 @@ import type {
   CommitmentStatus,
   CommitmentUpdate,
   DashboardSummary,
+  LoginRequest,
   PredictionResponse,
+  RegisterRequest,
   Transaction,
   TransactionCreate,
   TransactionUpdate,
+  User,
+  Workspace,
+  WorkspaceCreate,
+  WorkspaceUpdate,
 } from './types'
 
 const BASE_URL = '/api/v1'
@@ -46,36 +52,74 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  auth: {
+    register: (body: RegisterRequest) =>
+      request<User>('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
+    login: (body: LoginRequest) =>
+      request<User>('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+    logout: () => request<void>('/auth/logout', { method: 'POST' }),
+    me: () => request<User>('/auth/me'),
+  },
+  workspaces: {
+    list: () => request<Workspace[]>('/workspaces'),
+    create: (body: WorkspaceCreate) =>
+      request<Workspace>('/workspaces', { method: 'POST', body: JSON.stringify(body) }),
+    rename: (id: number, body: WorkspaceUpdate) =>
+      request<Workspace>(`/workspaces/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    delete: (id: number) => request<void>(`/workspaces/${id}`, { method: 'DELETE' }),
+  },
   categories: {
-    list: () => request<Category[]>('/categories'),
-    create: (body: CategoryCreate) =>
-      request<Category>('/categories', { method: 'POST', body: JSON.stringify(body) }),
+    list: (workspaceId: number) => request<Category[]>(`/workspaces/${workspaceId}/categories`),
+    create: (workspaceId: number, body: CategoryCreate) =>
+      request<Category>(`/workspaces/${workspaceId}/categories`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
   },
   transactions: {
-    list: () => request<Transaction[]>('/transactions'),
-    create: (body: TransactionCreate) =>
-      request<Transaction>('/transactions', { method: 'POST', body: JSON.stringify(body) }),
-    update: (id: number, body: TransactionUpdate) =>
-      request<Transaction>(`/transactions/${id}/edit`, { method: 'PUT', body: JSON.stringify(body) }),
-    delete: (id: number) => request<void>(`/transactions/${id}`, { method: 'DELETE' }),
+    list: (workspaceId: number) =>
+      request<Transaction[]>(`/workspaces/${workspaceId}/transactions`),
+    create: (workspaceId: number, body: TransactionCreate) =>
+      request<Transaction>(`/workspaces/${workspaceId}/transactions`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    update: (workspaceId: number, id: number, body: TransactionUpdate) =>
+      request<Transaction>(`/workspaces/${workspaceId}/transactions/${id}/edit`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      }),
+    delete: (workspaceId: number, id: number) =>
+      request<void>(`/workspaces/${workspaceId}/transactions/${id}`, { method: 'DELETE' }),
   },
   commitments: {
-    list: (status?: CommitmentStatus) =>
-      request<Commitment[]>(`/commitments${status ? `?status=${status}` : ''}`),
-    create: (body: CommitmentCreate) =>
-      request<Commitment>('/commitments', { method: 'POST', body: JSON.stringify(body) }),
-    update: (id: number, body: CommitmentUpdate) =>
-      request<Commitment>(`/commitments/${id}/edit`, { method: 'PUT', body: JSON.stringify(body) }),
-    execute: (id: number, body?: CommitmentExecute) =>
-      request<Transaction>(`/commitments/${id}/execute`, {
+    list: (workspaceId: number, status?: CommitmentStatus) =>
+      request<Commitment[]>(
+        `/workspaces/${workspaceId}/commitments${status ? `?status=${status}` : ''}`,
+      ),
+    create: (workspaceId: number, body: CommitmentCreate) =>
+      request<Commitment>(`/workspaces/${workspaceId}/commitments`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    update: (workspaceId: number, id: number, body: CommitmentUpdate) =>
+      request<Commitment>(`/workspaces/${workspaceId}/commitments/${id}/edit`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      }),
+    execute: (workspaceId: number, id: number, body?: CommitmentExecute) =>
+      request<Transaction>(`/workspaces/${workspaceId}/commitments/${id}/execute`, {
         method: 'POST',
         body: body ? JSON.stringify(body) : undefined,
       }),
-    delete: (id: number) => request<void>(`/commitments/${id}`, { method: 'DELETE' }),
+    delete: (workspaceId: number, id: number) =>
+      request<void>(`/workspaces/${workspaceId}/commitments/${id}`, { method: 'DELETE' }),
   },
   dashboard: {
-    get: () => request<DashboardSummary>('/dashboard'),
-    predictions: (date?: string) =>
-      request<PredictionResponse>(`/dashboard/predictions${date ? `?date=${date}` : ''}`),
+    get: (workspaceId: number) => request<DashboardSummary>(`/workspaces/${workspaceId}/dashboard`),
+    predictions: (workspaceId: number, date?: string) =>
+      request<PredictionResponse>(
+        `/workspaces/${workspaceId}/dashboard/predictions${date ? `?date=${date}` : ''}`,
+      ),
   },
 }
