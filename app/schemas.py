@@ -1,10 +1,43 @@
 import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 from decimal import Decimal
 from typing import Optional
 
 from app.models import CommitmentStatus
+
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=72)
+
+
+class UserOut(BaseModel):
+    id: int
+    email: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., max_length=72)
+
+
+class WorkspaceCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+
+
+class WorkspaceUpdate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+
+
+class WorkspaceOut(BaseModel):
+    id: int
+    name: str
+    created_at: datetime.datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CategoryBase(BaseModel):
