@@ -30,11 +30,13 @@ Vite proxies `/api/*` to `http://127.0.0.1:8000` (see `vite.config.ts`), so the 
 
 ## Testing on your phone
 
-`npm run dev` binds to all interfaces (`host: true`), so with your laptop and phone on the same Wi-Fi you can open one of the "Network" URLs Vite prints (e.g. `http://192.168.x.x:5173`) directly on the phone.
+`npm run dev` binds to all IPv4 interfaces (`host: '0.0.0.0'`) on port `4173`, so with your laptop and phone on the same Wi-Fi you can open one of the "Network" URLs Vite prints (e.g. `http://192.168.x.x:4173`) directly on the phone.
+
+(Vite's own default port, 5173, is deliberately not used here — on WSL2 it can silently land inside a Windows/Hyper-V dynamic port exclusion range, breaking `localhost` forwarding from Windows with no error on the WSL side. Check `netsh interface ipv4 show excludedportrange protocol=tcp` from an elevated Windows prompt if `4173` ever needs to move.)
 
 **If you're on WSL2** (this repo's dev environment is), WSL2's virtual network is NAT'd behind Windows and typically isn't reachable from other LAN devices out of the box — the "Network" IPs Vite prints from inside WSL2 usually won't work from your phone. Options:
 - Run `npm run dev` from Windows (PowerShell) instead of inside WSL2, against the same repo via the `\\wsl$` path or a native Windows Node install.
-- Or forward the port from Windows to WSL2: in an elevated PowerShell, `netsh interface portproxy add v4tov4 listenport=5173 listenaddress=0.0.0.0 connectport=5173 connectaddress=<WSL2-IP>` (get `<WSL2-IP>` via `wsl hostname -I`), then browse to your Windows machine's LAN IP from the phone.
+- Or forward the port from Windows to WSL2: in an elevated PowerShell, `netsh interface portproxy add v4tov4 listenport=4173 listenaddress=0.0.0.0 connectport=4173 connectaddress=<WSL2-IP>` (get `<WSL2-IP>` via `wsl hostname -I`), then browse to your Windows machine's LAN IP from the phone.
 
 Once you can load the page on your phone, use the browser menu → "Add to Home Screen" to install it as a PWA.
 
