@@ -34,7 +34,7 @@ def edit(
     try:
         transaction = crud.edit_transaction(db, transaction_id, obj)
     except ValueError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
     if not transaction:
         raise HTTPException(status_code=404, detail="Transaction not found")
     return transaction
