@@ -2,17 +2,20 @@ import datetime
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from app import schemas, crud
-from app.dependencies import get_db
+from app import schemas, crud, models
+from app.dependencies import get_current_workspace, get_db
 
-router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+router = APIRouter(prefix="/workspaces/{workspace_id}/dashboard", tags=["dashboard"])
 
 
 @router.get("", response_model=schemas.DashboardSummary)
-def get(db: Session = Depends(get_db)):
-    balance = crud.get_balance(db)
-    pending = crud.get_pending_commitments_total(db)
-    next_c = crud.get_next_commitment(db)
+def get(
+    workspace: models.Workspace = Depends(get_current_workspace),
+    db: Session = Depends(get_db),
+):
+    balance = crud.get_balance(db, workspace.id)
+    pending = crud.get_pending_commitments_total(db, workspace.id)
+    next_c = crud.get_next_commitment(db, workspace.id)
     return schemas.DashboardSummary(
         balance=balance,
         pending_commitments_total=pending,
@@ -22,6 +25,10 @@ def get(db: Session = Depends(get_db)):
 
 
 @router.get("/predictions", response_model=schemas.PredictionResponse)
-def predictions(date: datetime.date | None = None, db: Session = Depends(get_db)):
-    result = crud.get_prediction(db, target_date=date)
+def predictions(
+    date: datetime.date | None = None,
+    workspace: models.Workspace = Depends(get_current_workspace),
+    db: Session = Depends(get_db),
+):
+    result = crud.get_prediction(db, workspace.id, target_date=date)
     return schemas.PredictionResponse(**result)

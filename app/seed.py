@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
 
-from app.database import SessionLocal
 from app.models import Category
 
 DEFAULT_CATEGORIES = [
@@ -18,21 +17,18 @@ DEFAULT_CATEGORIES = [
 ]
 
 
-def seed_categories(db: Session) -> None:
-    existing = {name for (name,) in db.query(Category.name).all()}
+def seed_categories(db: Session, workspace_id: int) -> None:
+    existing = {
+        name
+        for (name,) in db.query(Category.name)
+        .filter(Category.workspace_id == workspace_id)
+        .all()
+    }
     new_categories = [
-        Category(name=name)
+        Category(workspace_id=workspace_id, name=name)
         for name in DEFAULT_CATEGORIES
         if name not in existing
     ]
     if new_categories:
         db.add_all(new_categories)
         db.commit()
-
-
-if __name__ == "__main__":
-    db = SessionLocal()
-    try:
-        seed_categories(db)
-    finally:
-        db.close()

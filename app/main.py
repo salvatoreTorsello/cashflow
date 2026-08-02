@@ -1,26 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.database import SessionLocal
-from app.routers import categories, transactions, commitments, dashboard
-from app.seed import seed_categories
-
-db = SessionLocal()
-try:
-    seed_categories(db)
-finally:
-    db.close()
+from app.routers import auth, categories, transactions, commitments, dashboard, workspaces
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+app.include_router(auth.router, prefix=settings.API_V1_STR)
+app.include_router(workspaces.router, prefix=settings.API_V1_STR)
 app.include_router(categories.router, prefix=settings.API_V1_STR)
 app.include_router(transactions.router, prefix=settings.API_V1_STR)
 app.include_router(commitments.router, prefix=settings.API_V1_STR)
