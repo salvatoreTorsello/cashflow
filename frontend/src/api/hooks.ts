@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
-import type { CategoryCreate, CommitmentCreate, CommitmentStatus, TransactionCreate } from './types'
+import type {
+  CategoryCreate,
+  CommitmentCreate,
+  CommitmentStatus,
+  CommitmentUpdate,
+  TransactionCreate,
+  TransactionUpdate,
+} from './types'
 
 const keys = {
   categories: ['categories'] as const,
@@ -36,6 +43,28 @@ export function useCreateTransaction() {
   })
 }
 
+export function useUpdateTransaction() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number; body: TransactionUpdate }) => api.transactions.update(id, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.transactions })
+      qc.invalidateQueries({ queryKey: keys.dashboard })
+    },
+  })
+}
+
+export function useDeleteTransaction() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.transactions.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.transactions })
+      qc.invalidateQueries({ queryKey: keys.dashboard })
+    },
+  })
+}
+
 export function useCommitments(status?: CommitmentStatus) {
   return useQuery({ queryKey: keys.commitments(status), queryFn: () => api.commitments.list(status) })
 }
@@ -46,6 +75,29 @@ export function useCreateCommitment() {
     mutationFn: (body: CommitmentCreate) => api.commitments.create(body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['commitments'] })
+      qc.invalidateQueries({ queryKey: keys.dashboard })
+    },
+  })
+}
+
+export function useUpdateCommitment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number; body: CommitmentUpdate }) => api.commitments.update(id, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['commitments'] })
+      qc.invalidateQueries({ queryKey: keys.dashboard })
+    },
+  })
+}
+
+export function useDeleteCommitment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.commitments.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['commitments'] })
+      qc.invalidateQueries({ queryKey: keys.transactions })
       qc.invalidateQueries({ queryKey: keys.dashboard })
     },
   })

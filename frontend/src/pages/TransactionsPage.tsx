@@ -1,5 +1,12 @@
 import { useState, type FormEvent } from 'react'
-import { useCategories, useCreateTransaction, useTransactions } from '../api/hooks'
+import type { Transaction } from '../api/types'
+import {
+  useCategories,
+  useCreateTransaction,
+  useDeleteTransaction,
+  useTransactions,
+  useUpdateTransaction,
+} from '../api/hooks'
 import { formatCurrency, formatDate } from '../lib/format'
 import AsyncState from '../components/AsyncState'
 
@@ -11,29 +18,54 @@ export default function TransactionsPage() {
   const { data: transactions, isLoading, error } = useTransactions()
   const { data: categories } = useCategories()
   const createTransaction = useCreateTransaction()
+  const updateTransaction = useUpdateTransaction()
+  const deleteTransaction = useDeleteTransaction()
 
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [date, setDate] = useState(todayISO())
   const [amount, setAmount] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [description, setDescription] = useState('')
 
+  const isEditing = editingId !== null
+  const isSaving = createTransaction.isPending || updateTransaction.isPending
+
+  function resetForm() {
+    setEditingId(null)
+    setDate(todayISO())
+    setAmount('')
+    setCategoryId('')
+    setDescription('')
+  }
+
+  function handleEdit(t: Transaction) {
+    setEditingId(t.id)
+    setDate(t.date)
+    setAmount(t.amount)
+    setCategoryId(String(t.category_id))
+    setDescription(t.description ?? '')
+  }
+
+  function handleDelete(t: Transaction) {
+    if (!window.confirm('Delete this transaction?')) return
+    deleteTransaction.mutate(t.id)
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!amount || !categoryId) return
-    createTransaction.mutate(
-      {
-        date,
-        amount: Number(amount),
-        category_id: Number(categoryId),
-        description: description || null,
-      },
-      {
-        onSuccess: () => {
-          setAmount('')
-          setDescription('')
-        },
-      },
-    )
+    const body = {
+      date,
+      amount: Number(amount),
+      category_id: Number(categoryId),
+      description: description || null,
+    }
+
+    if (editingId !== null) {
+      updateTransaction.mutate({ id: editingId, body }, { onSuccess: resetForm })
+    } else {
+      createTransaction.mutate(body, { onSuccess: resetForm })
+    }
   }
 
   return (
@@ -82,13 +114,22 @@ export default function TransactionsPage() {
           />
         </label>
 
-        {createTransaction.isError && (
-          <p className="async-state async-state--error">{(createTransaction.error as Error).message}</p>
+        {(createTransaction.isError || updateTransaction.isError) && (
+          <p className="async-state async-state--error">
+            {((updateTransaction.error ?? createTransaction.error) as Error).message}
+          </p>
         )}
 
-        <button className="btn-primary" type="submit" disabled={createTransaction.isPending}>
-          {createTransaction.isPending ? 'Adding…' : 'Add transaction'}
-        </button>
+        <div className="btn-text-group">
+          <button className="btn-primary" type="submit" disabled={isSaving}>
+            {isSaving ? 'Saving…' : isEditing ? 'Save changes' : 'Add transaction'}
+          </button>
+          {isEditing && (
+            <button className="btn-secondary" type="button" onClick={resetForm}>
+              Cancel
+            </button>
+          )}
+        </div>
       </form>
 
       <section className="section">
@@ -102,6 +143,14 @@ export default function TransactionsPage() {
                 <span className="list-card-subtitle">
                   {t.category.name} · {formatDate(t.date)}
                 </span>
+                <div className="btn-text-group">
+                  <button className="btn-text" type="button" onClick={() => handleEdit(t)}>
+                    Edit
+                  </button>
+                  <button className="btn-text btn-text--danger" type="button" onClick={() => handleDelete(t)}>
+                    Delete
+                  </button>
+                </div>
               </div>
               <span className={`list-card-amount ${Number(t.amount) >= 0 ? 'positive' : 'negative'}`}>
                 {formatCurrency(t.amount)}

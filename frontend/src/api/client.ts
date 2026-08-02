@@ -4,9 +4,11 @@ import type {
   Commitment,
   CommitmentCreate,
   CommitmentStatus,
+  CommitmentUpdate,
   DashboardSummary,
   Transaction,
   TransactionCreate,
+  TransactionUpdate,
 } from './types'
 
 const BASE_URL = '/api/v1'
@@ -51,14 +53,20 @@ export const api = {
     list: () => request<Transaction[]>('/transactions'),
     create: (body: TransactionCreate) =>
       request<Transaction>('/transactions', { method: 'POST', body: JSON.stringify(body) }),
+    update: (id: number, body: TransactionUpdate) =>
+      request<Transaction>(`/transactions/${id}/edit`, { method: 'PUT', body: JSON.stringify(body) }),
+    delete: (id: number) => request<void>(`/transactions/${id}`, { method: 'DELETE' }),
   },
   commitments: {
     list: (status?: CommitmentStatus) =>
       request<Commitment[]>(`/commitments${status ? `?status=${status}` : ''}`),
     create: (body: CommitmentCreate) =>
       request<Commitment>('/commitments', { method: 'POST', body: JSON.stringify(body) }),
+    update: (id: number, body: CommitmentUpdate) =>
+      request<Commitment>(`/commitments/${id}/edit`, { method: 'PUT', body: JSON.stringify(body) }),
     execute: (id: number) =>
       request<Transaction>(`/commitments/${id}/execute`, { method: 'POST' }),
+    delete: (id: number) => request<void>(`/commitments/${id}`, { method: 'DELETE' }),
   },
   dashboard: {
     get: () => request<DashboardSummary>('/dashboard'),

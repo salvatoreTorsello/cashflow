@@ -1,6 +1,15 @@
 import { useState, type FormEvent } from 'react'
-import type { CommitmentStatus } from '../api/types'
-import { useCategories, useCommitments, useCreateCommitment, useExecuteCommitment } from '../api/hooks'
+import type { Commitment, CommitmentStatus } from '../api/types'
+import {
+  useCategories,
+  useCommitments,
+  useCreateCommitment,
+  useDeleteCommitment,
+  useDeleteTransaction,
+  useExecuteCommitment,
+  useTransactions,
+  useUpdateCommitment,
+} from '../api/hooks'
 import { formatCurrency, formatDate } from '../lib/format'
 import AsyncState from '../components/AsyncState'
 
@@ -19,32 +28,66 @@ export default function CommitmentsPage() {
   const [filter, setFilter] = useState<CommitmentStatus | undefined>('pending')
   const { data: commitments, isLoading, error } = useCommitments(filter)
   const { data: categories } = useCategories()
+  const { data: transactions } = useTransactions()
   const createCommitment = useCreateCommitment()
+  const updateCommitment = useUpdateCommitment()
   const executeCommitment = useExecuteCommitment()
+  const deleteCommitment = useDeleteCommitment()
+  const deleteTransaction = useDeleteTransaction()
 
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [dueDate, setDueDate] = useState(todayISO())
   const [amount, setAmount] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [description, setDescription] = useState('')
 
+  const isEditing = editingId !== null
+  const isSaving = createCommitment.isPending || updateCommitment.isPending
+
+  function resetForm() {
+    setEditingId(null)
+    setDueDate(todayISO())
+    setAmount('')
+    setCategoryId('')
+    setDescription('')
+  }
+
+  function handleEdit(c: Commitment) {
+    setEditingId(c.id)
+    setDueDate(c.due_date)
+    setAmount(String(Math.abs(Number(c.amount))))
+    setCategoryId(String(c.category_id))
+    setDescription(c.description ?? '')
+  }
+
+  function handleDelete(c: Commitment) {
+    if (!window.confirm('Delete this commitment?')) return
+    const linkedTransaction = transactions?.find((t) => t.commitment_id === c.id)
+    deleteCommitment.mutate(c.id, {
+      onSuccess: () => {
+        if (linkedTransaction && window.confirm('Also delete the linked transaction?')) {
+          deleteTransaction.mutate(linkedTransaction.id)
+        }
+      },
+    })
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const magnitude = Number(amount)
     if (!magnitude || !categoryId) return
-    createCommitment.mutate(
-      {
-        due_date: dueDate,
-        amount: -Math.abs(magnitude),
-        category_id: Number(categoryId),
-        description: description || null,
-      },
-      {
-        onSuccess: () => {
-          setAmount('')
-          setDescription('')
-        },
-      },
-    )
+    const body = {
+      due_date: dueDate,
+      amount: -Math.abs(magnitude),
+      category_id: Number(categoryId),
+      description: description || null,
+    }
+
+    if (editingId !== null) {
+      updateCommitment.mutate({ id: editingId, body }, { onSuccess: resetForm })
+    } else {
+      createCommitment.mutate(body, { onSuccess: resetForm })
+    }
   }
 
   return (
@@ -94,13 +137,22 @@ export default function CommitmentsPage() {
           />
         </label>
 
-        {createCommitment.isError && (
-          <p className="async-state async-state--error">{(createCommitment.error as Error).message}</p>
+        {(createCommitment.isError || updateCommitment.isError) && (
+          <p className="async-state async-state--error">
+            {((updateCommitment.error ?? createCommitment.error) as Error).message}
+          </p>
         )}
 
-        <button className="btn-primary" type="submit" disabled={createCommitment.isPending}>
-          {createCommitment.isPending ? 'Adding…' : 'Add commitment'}
-        </button>
+        <div className="btn-text-group">
+          <button className="btn-primary" type="submit" disabled={isSaving}>
+            {isSaving ? 'Saving…' : isEditing ? 'Save changes' : 'Add commitment'}
+          </button>
+          {isEditing && (
+            <button className="btn-secondary" type="button" onClick={resetForm}>
+              Cancel
+            </button>
+          )}
+        </div>
       </form>
 
       <section className="section">
@@ -126,6 +178,14 @@ export default function CommitmentsPage() {
                 <span className="list-card-subtitle">
                   {c.category.name} · due {formatDate(c.due_date)} · <span className={`badge badge--${c.status}`}>{c.status}</span>
                 </span>
+                <div className="btn-text-group">
+                  <button className="btn-text" type="button" onClick={() => handleEdit(c)}>
+                    Edit
+                  </button>
+                  <button className="btn-text btn-text--danger" type="button" onClick={() => handleDelete(c)}>
+                    Delete
+                  </button>
+                </div>
               </div>
               <div className="list-card-actions">
                 <span className="list-card-amount negative">{formatCurrency(c.amount)}</span>

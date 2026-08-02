@@ -29,6 +29,14 @@ export interface TransactionCreate {
   commitment_id?: number | null
 }
 
+export interface TransactionUpdate {
+  date?: string
+  amount?: number
+  category_id?: number
+  description?: string | null
+  commitment_id?: number | null
+}
+
 export interface Commitment {
   id: number
   due_date: string
@@ -37,7 +45,6 @@ export interface Commitment {
   category: Category
   description: string | null
   status: CommitmentStatus
-  parent_id: number | null
 }
 
 export interface CommitmentCreate {
@@ -46,7 +53,14 @@ export interface CommitmentCreate {
   category_id: number
   description?: string | null
   status?: CommitmentStatus
-  parent_id?: number | null
+}
+
+export interface CommitmentUpdate {
+  due_date?: string
+  amount?: number
+  category_id?: number
+  description?: string | null
+  status?: CommitmentStatus
 }
 
 export interface DashboardSummary {
