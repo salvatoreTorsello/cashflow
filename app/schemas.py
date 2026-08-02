@@ -62,7 +62,6 @@ class CommitmentBase(BaseModel):
     category_id: int
     description: Optional[str] = None
     status: CommitmentStatus = CommitmentStatus.pending
-    parent_id: Optional[int] = None
 
 
 class CommitmentCreate(CommitmentBase):
@@ -82,7 +81,6 @@ class CommitmentUpdate(BaseModel):
     category_id: Optional[int] = None
     description: Optional[str] = None
     status: Optional[CommitmentStatus] = None
-    parent_id: Optional[int] = None
 
 
 class DashboardSummary(BaseModel):
