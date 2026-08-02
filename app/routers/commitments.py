@@ -1,3 +1,5 @@
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app import schemas, crud, models
@@ -6,7 +8,7 @@ from app.dependencies import get_current_workspace, get_db
 router = APIRouter(prefix="/workspaces/{workspace_id}/commitments", tags=["commitments"])
 
 
-@router.post("", response_model=schemas.CommitmentOut)
+@router.post("", response_model=list[schemas.CommitmentOut])
 def create(
     obj: schemas.CommitmentCreate,
     workspace: models.Workspace = Depends(get_current_workspace),
@@ -64,8 +66,9 @@ def edit(
 @router.delete("/{commitment_id}", status_code=204)
 def delete(
     commitment_id: int,
+    scope: Literal["single", "series"] = "single",
     workspace: models.Workspace = Depends(get_current_workspace),
     db: Session = Depends(get_db),
 ):
-    if not crud.delete_commitment(db, workspace.id, commitment_id):
+    if not crud.delete_commitment(db, workspace.id, commitment_id, scope):
         raise HTTPException(status_code=404, detail="Commitment not found")
