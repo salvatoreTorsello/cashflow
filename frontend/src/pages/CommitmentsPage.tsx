@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { Suspense, lazy, useState, type FormEvent } from 'react'
 import type { Commitment, CommitmentStatus } from '../api/types'
 import {
   useCategories,
@@ -10,8 +10,11 @@ import {
   useTransactions,
   useUpdateCommitment,
 } from '../api/hooks'
+import { monthlyCommitmentTotals } from '../lib/aggregate'
 import { formatCurrency, formatDate } from '../lib/format'
 import AsyncState from '../components/AsyncState'
+
+const BurnRateChart = lazy(() => import('../components/BurnRateChart'))
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
@@ -27,6 +30,7 @@ const FILTERS: Array<{ label: string; value: CommitmentStatus | undefined }> = [
 export default function CommitmentsPage() {
   const [filter, setFilter] = useState<CommitmentStatus | undefined>('pending')
   const { data: commitments, isLoading, error } = useCommitments(filter)
+  const { data: allCommitments } = useCommitments()
   const { data: categories } = useCategories()
   const { data: transactions } = useTransactions()
   const createCommitment = useCreateCommitment()
@@ -186,6 +190,15 @@ export default function CommitmentsPage() {
           )}
         </div>
       </form>
+
+      <section className="section">
+        <h2 className="section-title">Commitments by month — next 5 months</h2>
+        {allCommitments && (
+          <Suspense fallback={<div className="chart-placeholder" />}>
+            <BurnRateChart data={monthlyCommitmentTotals(allCommitments)} />
+          </Suspense>
+        )}
+      </section>
 
       <section className="section">
         <div className="tabs">
