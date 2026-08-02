@@ -5,6 +5,7 @@ const TABS = [
   { to: '/transactions', label: 'Transactions', end: false, icon: <path d="M4 6h16M4 12h16M4 18h10" /> },
   { to: '/commitments', label: 'Commitments', end: false, icon: <path d="M8 3v3M16 3v3M4 9h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" /> },
   { to: '/categories', label: 'Categories', end: false, icon: <path d="M4 4h7l9 9-7 7-9-9V4z M8 8h.01" /> },
+  { to: '/predictions', label: 'Predictions', end: false, icon: <path d="M4 19h16M4 15l4-5 4 3 5-7" /> },
 ]
 
 export default function BottomNav() {

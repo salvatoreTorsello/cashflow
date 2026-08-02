@@ -4,6 +4,7 @@ import DashboardPage from './pages/DashboardPage'
 import TransactionsPage from './pages/TransactionsPage'
 import CommitmentsPage from './pages/CommitmentsPage'
 import CategoriesPage from './pages/CategoriesPage'
+import PredictionsPage from './pages/PredictionsPage'
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
           <Route path="/transactions" element={<TransactionsPage />} />
           <Route path="/commitments" element={<CommitmentsPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/predictions" element={<PredictionsPage />} />
         </Routes>
       </main>
       <BottomNav />

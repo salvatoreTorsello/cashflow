@@ -69,3 +69,14 @@ export interface DashboardSummary {
   safe_margin: string
   next_commitment: Commitment | null
 }
+
+export interface PredictionPoint {
+  date: string
+  balance: string
+}
+
+export interface PredictionResponse {
+  average_salary: string
+  series: PredictionPoint[]
+  selected: PredictionPoint | null
+}

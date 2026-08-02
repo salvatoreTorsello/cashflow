@@ -1,3 +1,5 @@
+import datetime
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app import schemas, crud
@@ -17,3 +19,9 @@ def get(db: Session = Depends(get_db)):
         safe_margin=balance + pending,
         next_commitment=next_c
     )
+
+
+@router.get("/predictions", response_model=schemas.PredictionResponse)
+def predictions(date: datetime.date | None = None, db: Session = Depends(get_db)):
+    result = crud.get_prediction(db, target_date=date)
+    return schemas.PredictionResponse(**result)

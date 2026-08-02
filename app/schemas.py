@@ -91,3 +91,14 @@ class DashboardSummary(BaseModel):
     next_commitment: Optional[CommitmentOut] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class PredictionPoint(BaseModel):
+    date: datetime.date
+    balance: Decimal
+
+
+class PredictionResponse(BaseModel):
+    average_salary: Decimal
+    series: list[PredictionPoint]
+    selected: Optional[PredictionPoint] = None

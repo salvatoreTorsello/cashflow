@@ -1,3 +1,5 @@
+import calendar
+from datetime import date, timedelta
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
@@ -195,3 +197,86 @@ def get_pending_commitments_total(db: Session):
 def get_balance(db: Session):
     result = db.query(func.sum(models.Transaction.amount)).scalar()
     return result or Decimal("0")
+
+
+## Predictions
+
+
+def _add_months(d: date, months: int) -> date:
+    month_index = d.month - 1 + months
+    year = d.year + month_index // 12
+    month = month_index % 12 + 1
+    day = min(d.day, calendar.monthrange(year, month)[1])
+    return date(year, month, day)
+
+
+def get_average_salary(db: Session) -> Decimal:
+    amounts = (
+        db.query(models.Transaction.amount)
+        .join(models.Category)
+        .filter(models.Category.name == "salary")
+        .all()
+    )
+    values = [row[0] for row in amounts]
+    if not values:
+        return Decimal("0")
+    return sum(values) / len(values)
+
+
+def _get_last_salary_date(db: Session):
+    return (
+        db.query(func.max(models.Transaction.date))
+        .join(models.Category)
+        .filter(models.Category.name == "salary")
+        .scalar()
+    )
+
+
+def _get_projected_salary_dates(db: Session, today: date, horizon_end: date) -> list[date]:
+    last_salary_date = _get_last_salary_date(db)
+    if last_salary_date is None:
+        return []
+
+    next_date = last_salary_date
+    while next_date <= today:
+        next_date = _add_months(next_date, 1)
+
+    dates = []
+    while next_date <= horizon_end:
+        dates.append(next_date)
+        next_date = _add_months(next_date, 1)
+    return dates
+
+
+def get_prediction(db: Session, target_date: date | None = None, months: int = 5):
+    today = date.today()
+    horizon_end = _add_months(today, months)
+    query_end = max(horizon_end, target_date) if target_date else horizon_end
+
+    current_balance = get_balance(db)
+    avg_salary = get_average_salary(db)
+
+    pending_commitments = (
+        db.query(models.Commitment)
+        .filter(models.Commitment.status != models.CommitmentStatus.paid)
+        .filter(models.Commitment.due_date <= query_end)
+        .all()
+    )
+    salary_dates = _get_projected_salary_dates(db, today, query_end)
+
+    def balance_at(d: date) -> Decimal:
+        commitments_delta = sum(
+            (c.amount for c in pending_commitments if c.due_date <= d), Decimal("0")
+        )
+        salary_delta = avg_salary * len([s for s in salary_dates if s <= d])
+        return current_balance + commitments_delta + salary_delta
+
+    series = []
+    d = today
+    while d <= horizon_end:
+        series.append({"date": d, "balance": balance_at(d)})
+        d += timedelta(days=7)
+
+    selected = {"date": target_date, "balance": balance_at(target_date)} if target_date else None
+
+    return {"average_salary": avg_salary, "series": series, "selected": selected}

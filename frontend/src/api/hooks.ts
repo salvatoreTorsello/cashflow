@@ -14,6 +14,7 @@ const keys = {
   transactions: ['transactions'] as const,
   commitments: (status?: CommitmentStatus) => ['commitments', status ?? 'all'] as const,
   dashboard: ['dashboard'] as const,
+  predictions: (date?: string) => ['predictions', date ?? null] as const,
 }
 
 export function useCategories() {
@@ -117,4 +118,11 @@ export function useExecuteCommitment() {
 
 export function useDashboard() {
   return useQuery({ queryKey: keys.dashboard, queryFn: api.dashboard.get })
+}
+
+export function usePredictions(date?: string) {
+  return useQuery({
+    queryKey: keys.predictions(date),
+    queryFn: () => api.dashboard.predictions(date),
+  })
 }

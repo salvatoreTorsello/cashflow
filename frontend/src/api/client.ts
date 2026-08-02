@@ -6,6 +6,7 @@ import type {
   CommitmentStatus,
   CommitmentUpdate,
   DashboardSummary,
+  PredictionResponse,
   Transaction,
   TransactionCreate,
   TransactionUpdate,
@@ -70,5 +71,7 @@ export const api = {
   },
   dashboard: {
     get: () => request<DashboardSummary>('/dashboard'),
+    predictions: (date?: string) =>
+      request<PredictionResponse>(`/dashboard/predictions${date ? `?date=${date}` : ''}`),
   },
 }
