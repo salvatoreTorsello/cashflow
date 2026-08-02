@@ -1,6 +1,7 @@
+import datetime
+
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from decimal import Decimal
-from datetime import date, datetime
 from typing import Optional
 
 from app.models import CommitmentStatus
@@ -21,7 +22,7 @@ class CategoryOut(CategoryBase):
 
 
 class TransactionBase(BaseModel):
-    date: date
+    date: datetime.date
     amount: Decimal
     category_id: int
     description: Optional[str] = None
@@ -42,14 +43,14 @@ class TransactionCreate(TransactionBase):
 
 class TransactionOut(TransactionBase):
     id: int
-    created_at: datetime
+    created_at: datetime.datetime
     category: CategoryOut
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class TransactionUpdate(BaseModel):
-    date: Optional[date] = None
+    date: Optional[datetime.date] = None
     amount: Optional[Decimal] = None
     category_id: Optional[int] = None
     description: Optional[str] = None
@@ -57,7 +58,7 @@ class TransactionUpdate(BaseModel):
 
 
 class CommitmentBase(BaseModel):
-    due_date: date
+    due_date: datetime.date
     amount: Decimal = Field(..., lt=0)
     category_id: int
     description: Optional[str] = None
@@ -76,7 +77,7 @@ class CommitmentOut(CommitmentBase):
 
 
 class CommitmentUpdate(BaseModel):
-    due_date: Optional[date] = None
+    due_date: Optional[datetime.date] = None
     amount: Optional[Decimal] = Field(None, lt=0)
     category_id: Optional[int] = None
     description: Optional[str] = None
