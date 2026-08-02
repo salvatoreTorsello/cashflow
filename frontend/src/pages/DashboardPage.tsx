@@ -25,16 +25,22 @@ export default function DashboardPage() {
       {data && (
         <>
           <div className="stat-grid">
-            <StatCard label="Balance" value={formatCurrency(data.balance)} />
+            <StatCard
+              label="Balance"
+              value={formatCurrency(data.balance)}
+              info="Sum of all recorded transactions to date."
+            />
             <StatCard
               label="Safe margin"
               value={formatCurrency(data.safe_margin)}
               tone={Number(data.safe_margin) >= 0 ? 'positive' : 'negative'}
+              info="Balance plus pending commitments — what would be left if every pending commitment were paid right now."
             />
             <StatCard
               label="Pending commitments"
               value={formatCurrency(data.pending_commitments_total)}
               tone="negative"
+              info="Total amount of commitments with status 'pending' (excludes confirmed and paid ones)."
             />
           </div>
 

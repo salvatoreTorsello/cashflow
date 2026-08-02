@@ -31,12 +31,18 @@ export default function PredictionsPage() {
       {data && (
         <>
           <div className="stat-grid">
-            <StatCard label="Average salary" value={formatCurrency(data.average_salary)} tone="positive" />
+            <StatCard
+              label="Average salary"
+              value={formatCurrency(data.average_salary)}
+              tone="positive"
+              info="Average amount of past transactions categorized as salary."
+            />
             {selected && (
               <StatCard
                 label={`Balance on ${formatDate(selected.date)}`}
                 value={formatCurrency(selected.balance)}
                 tone={selected.balance >= 0 ? 'positive' : 'negative'}
+                info="Current balance, plus commitments due by this date and projected salary occurrences up to this date."
               />
             )}
           </div>
