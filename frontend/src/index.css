@@ -461,12 +461,6 @@ body {
   height: 220px;
 }
 
-.chart-bar-label {
-  fill: var(--color-text-muted);
-  font-size: 11px;
-  font-family: inherit;
-}
-
 .chart-tooltip {
   background: var(--color-surface);
   border: 1px solid var(--color-border);

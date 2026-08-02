@@ -1,26 +1,25 @@
 import { Suspense, lazy, useState } from 'react'
 import { usePredictions } from '../api/hooks'
+import type { MonthlyNet } from '../lib/aggregate'
 import { formatCurrency, formatDate } from '../lib/format'
 import StatCard from '../components/StatCard'
 import AsyncState from '../components/AsyncState'
-import type { ForecastPoint } from '../components/BalanceForecastChart'
 
-const BalanceForecastChart = lazy(() => import('../components/BalanceForecastChart'))
+const BurnRateChart = lazy(() => import('../components/BurnRateChart'))
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
 }
 
-function toForecastPoint(point: { date: string; balance: string }): ForecastPoint {
-  return { date: point.date, label: formatDate(point.date), balance: Number(point.balance) }
+function toMonthlyNet(point: { date: string; balance: string }): MonthlyNet {
+  return { key: point.date, label: formatDate(point.date), net: Number(point.balance) }
 }
 
 export default function PredictionsPage() {
   const [selectedDate, setSelectedDate] = useState('')
   const { data, isLoading, error } = usePredictions(selectedDate || undefined)
 
-  const series = data?.series.map(toForecastPoint) ?? []
-  const selected = data?.selected ? toForecastPoint(data.selected) : null
+  const series = data?.series.map(toMonthlyNet) ?? []
 
   return (
     <div className="page">
@@ -37,11 +36,11 @@ export default function PredictionsPage() {
               tone="positive"
               info="Average amount of past transactions categorized as salary."
             />
-            {selected && (
+            {data.selected && (
               <StatCard
-                label={`Balance on ${formatDate(selected.date)}`}
-                value={formatCurrency(selected.balance)}
-                tone={selected.balance >= 0 ? 'positive' : 'negative'}
+                label={`Balance on ${formatDate(data.selected.date)}`}
+                value={formatCurrency(data.selected.balance)}
+                tone={Number(data.selected.balance) >= 0 ? 'positive' : 'negative'}
                 info="Current balance, plus commitments due by this date and projected salary occurrences up to this date."
               />
             )}
@@ -50,7 +49,7 @@ export default function PredictionsPage() {
           <section className="section">
             <h2 className="section-title">Projected balance — next 5 months</h2>
             <Suspense fallback={<div className="chart-placeholder" />}>
-              <BalanceForecastChart data={series} selected={selected} />
+              <BurnRateChart data={series} />
             </Suspense>
           </section>
 
