@@ -359,11 +359,13 @@ export default function CommitmentsPage() {
             <option value="" disabled>
               Select a category
             </option>
-            {categories?.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
+            {categories
+              ?.filter((c) => c.name !== 'salary')
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
           </select>
         </label>
 

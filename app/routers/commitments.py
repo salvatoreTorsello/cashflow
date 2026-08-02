@@ -14,8 +14,13 @@ def create(
     workspace: models.Workspace = Depends(get_current_workspace),
     db: Session = Depends(get_db),
 ):
-    if not crud.get_category(db, workspace.id, obj.category_id):
+    category = crud.get_category(db, workspace.id, obj.category_id)
+    if not category:
         raise HTTPException(status_code=404, detail="Category not found")
+    if category.name == "salary":
+        raise HTTPException(
+            status_code=400, detail="Commitments cannot use the salary category"
+        )
     return crud.create_commitment(db, workspace.id, obj)
 
 
@@ -51,10 +56,14 @@ def edit(
     db: Session = Depends(get_db),
 ):
     # Check if requested category exists
-    if (obj.category_id is not None) and (
-        not crud.get_category(db, workspace.id, obj.category_id)
-    ):
-        raise HTTPException(status_code=404, detail="Category not found")
+    if obj.category_id is not None:
+        category = crud.get_category(db, workspace.id, obj.category_id)
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
+        if category.name == "salary":
+            raise HTTPException(
+                status_code=400, detail="Commitments cannot use the salary category"
+            )
 
     # Edit the commitment
     commitment = crud.edit_commitment(db, workspace.id, commitment_id, obj)
