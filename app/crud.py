@@ -187,14 +187,109 @@ def delete_transaction(db: Session, workspace_id: int, transaction_id: int):
 ## Commitments
 
 
+def _add_interval(d: date, count: int, unit: models.IntervalUnit) -> date:
+    if unit == models.IntervalUnit.day:
+        return d + timedelta(days=count)
+    if unit == models.IntervalUnit.week:
+        return d + timedelta(weeks=count)
+    if unit == models.IntervalUnit.month:
+        return _add_months(d, count)
+    if unit == models.IntervalUnit.year:
+        return _add_months(d, count * 12)
+    raise ValueError(f"unknown interval unit: {unit}")
+
+
 def create_commitment(
     db: Session, workspace_id: int, obj: schemas.CommitmentCreate
-) -> models.Commitment:
-    db_obj = models.Commitment(workspace_id=workspace_id, **obj.model_dump())
-    db.add(db_obj)
-    db.commit()
-    db.refresh(db_obj)
-    return db_obj
+) -> list[models.Commitment]:
+    if obj.type == models.CommitmentType.one_time:
+        db_obj = models.Commitment(
+            workspace_id=workspace_id,
+            due_date=obj.due_date,
+            amount=obj.amount,
+            category_id=obj.category_id,
+            description=obj.description,
+            status=obj.status,
+        )
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return [db_obj]
+
+    if obj.type == models.CommitmentType.periodic:
+        series = models.CommitmentSeries(
+            workspace_id=workspace_id,
+            type=models.CommitmentType.periodic,
+            interval_count=obj.interval_count,
+            interval_unit=obj.interval_unit,
+        )
+        db.add(series)
+        db.flush()
+
+        # Materialize occurrences covering the next year; one more gets
+        # appended each time an occurrence is executed (see execute_commitment).
+        # Exclusive upper bound: a monthly series starting Aug 5 should
+        # produce 12 occurrences (through next Jul 5), not 13 (through next
+        # Aug 5) — the anniversary date itself belongs to "year two".
+        horizon = _add_months(obj.due_date, 12)
+        occurrences = []
+        current = obj.due_date
+        while current < horizon:
+            occurrences.append(
+                models.Commitment(
+                    workspace_id=workspace_id,
+                    due_date=current,
+                    amount=obj.amount,
+                    category_id=obj.category_id,
+                    description=obj.description,
+                    status=models.CommitmentStatus.pending,
+                    series_id=series.id,
+                )
+            )
+            current = _add_interval(current, obj.interval_count, obj.interval_unit)
+
+        db.add_all(occurrences)
+        db.commit()
+        for occ in occurrences:
+            db.refresh(occ)
+        return occurrences
+
+    if obj.type == models.CommitmentType.installment:
+        series = models.CommitmentSeries(
+            workspace_id=workspace_id,
+            type=models.CommitmentType.installment,
+            interval_count=obj.interval_count,
+            interval_unit=obj.interval_unit,
+            total_installments=obj.total_installments,
+        )
+        db.add(series)
+        db.flush()
+
+        occurrences = []
+        current = obj.due_date
+        total = obj.total_installments
+        for i, amount in enumerate(obj.installment_amounts, start=1):
+            occurrences.append(
+                models.Commitment(
+                    workspace_id=workspace_id,
+                    due_date=current,
+                    amount=amount,
+                    category_id=obj.category_id,
+                    description=f"{obj.description} {i}/{total}",
+                    status=models.CommitmentStatus.pending,
+                    series_id=series.id,
+                    installment_number=i,
+                )
+            )
+            current = _add_interval(current, obj.interval_count, obj.interval_unit)
+
+        db.add_all(occurrences)
+        db.commit()
+        for occ in occurrences:
+            db.refresh(occ)
+        return occurrences
+
+    raise ValueError(f"unknown commitment type: {obj.type}")
 
 
 def get_commitments(
@@ -257,12 +352,40 @@ def execute_commitment(
     )
     db_obj.status = models.CommitmentStatus.paid
     db.add(tx)
+
+    if db_obj.series_id is not None:
+        series = (
+            db.query(models.CommitmentSeries)
+            .filter(models.CommitmentSeries.id == db_obj.series_id)
+            .first()
+        )
+        if series and series.type == models.CommitmentType.periodic and series.is_active:
+            max_due_date = (
+                db.query(func.max(models.Commitment.due_date))
+                .filter(models.Commitment.series_id == series.id)
+                .scalar()
+            )
+            next_due = _add_interval(max_due_date, series.interval_count, series.interval_unit)
+            db.add(
+                models.Commitment(
+                    workspace_id=workspace_id,
+                    due_date=next_due,
+                    amount=db_obj.amount,
+                    category_id=db_obj.category_id,
+                    description=db_obj.description,
+                    status=models.CommitmentStatus.pending,
+                    series_id=series.id,
+                )
+            )
+
     db.commit()
     db.refresh(tx)
     return tx
 
 
-def delete_commitment(db: Session, workspace_id: int, commitment_id: int):
+def delete_commitment(
+    db: Session, workspace_id: int, commitment_id: int, scope: str = "single"
+):
     db_obj = (
         db.query(models.Commitment)
         .filter(
@@ -274,11 +397,34 @@ def delete_commitment(db: Session, workspace_id: int, commitment_id: int):
     if not db_obj:
         return None
 
-    db.query(models.Transaction).filter(
-        models.Transaction.commitment_id == commitment_id
-    ).update({"commitment_id": None})
+    ids_to_delete = {db_obj.id}
 
-    db.delete(db_obj)
+    if scope == "series" and db_obj.series_id is not None:
+        siblings = (
+            db.query(models.Commitment.id)
+            .filter(
+                models.Commitment.series_id == db_obj.series_id,
+                models.Commitment.due_date >= db_obj.due_date,
+                models.Commitment.status != models.CommitmentStatus.paid,
+            )
+            .all()
+        )
+        ids_to_delete.update(s.id for s in siblings)
+
+        # Stop future replenishment — otherwise paying an older, still-pending
+        # occurrence left before this cutoff would silently resurrect the
+        # series the user just cancelled.
+        db.query(models.CommitmentSeries).filter(
+            models.CommitmentSeries.id == db_obj.series_id
+        ).update({"is_active": False})
+
+    db.query(models.Transaction).filter(
+        models.Transaction.commitment_id.in_(ids_to_delete)
+    ).update({"commitment_id": None}, synchronize_session=False)
+
+    db.query(models.Commitment).filter(models.Commitment.id.in_(ids_to_delete)).delete(
+        synchronize_session=False
+    )
     db.commit()
     return True
 
