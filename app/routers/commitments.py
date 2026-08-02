@@ -21,8 +21,12 @@ def list_all(
 
 
 @router.post("/{commitment_id}/execute", response_model=schemas.TransactionOut)
-def execute(commitment_id: int, db: Session = Depends(get_db)):
-    tx = crud.execute_commitment(db, commitment_id)
+def execute(
+    commitment_id: int,
+    obj: schemas.CommitmentExecute | None = None,
+    db: Session = Depends(get_db),
+):
+    tx = crud.execute_commitment(db, commitment_id, obj)
     if not tx:
         raise HTTPException(
             status_code=404, detail="Commitment not found or already paid"

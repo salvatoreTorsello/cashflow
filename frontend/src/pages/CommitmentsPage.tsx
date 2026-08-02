@@ -41,6 +41,11 @@ export default function CommitmentsPage() {
   const [categoryId, setCategoryId] = useState('')
   const [description, setDescription] = useState('')
 
+  const [payingId, setPayingId] = useState<number | null>(null)
+  const [payDate, setPayDate] = useState(todayISO())
+  const [payAmount, setPayAmount] = useState('')
+  const [payDescription, setPayDescription] = useState('')
+
   const isEditing = editingId !== null
   const isSaving = createCommitment.isPending || updateCommitment.isPending
 
@@ -58,6 +63,33 @@ export default function CommitmentsPage() {
     setAmount(String(Math.abs(Number(c.amount))))
     setCategoryId(String(c.category_id))
     setDescription(c.description ?? '')
+  }
+
+  function startPay(c: Commitment) {
+    setPayingId(c.id)
+    setPayDate(todayISO())
+    setPayAmount(String(Math.abs(Number(c.amount))))
+    setPayDescription(c.description ?? '')
+  }
+
+  function cancelPay() {
+    setPayingId(null)
+  }
+
+  function confirmPay(c: Commitment) {
+    const magnitude = Number(payAmount)
+    if (!magnitude) return
+    executeCommitment.mutate(
+      {
+        id: c.id,
+        body: {
+          date: payDate,
+          amount: -Math.abs(magnitude),
+          description: payDescription || null,
+        },
+      },
+      { onSuccess: () => setPayingId(null) },
+    )
   }
 
   function handleDelete(c: Commitment) {
@@ -171,36 +203,80 @@ export default function CommitmentsPage() {
 
         <AsyncState isLoading={isLoading} error={error} isEmpty={commitments?.length === 0} emptyLabel="No commitments here." />
         <ul className="list">
-          {commitments?.map((c) => (
-            <li className="list-card" key={c.id}>
-              <div className="list-card-main">
-                <span className="list-card-title">{c.description ?? c.category.name}</span>
-                <span className="list-card-subtitle">
-                  {c.category.name} · due {formatDate(c.due_date)} · <span className={`badge badge--${c.status}`}>{c.status}</span>
-                </span>
-                <div className="btn-text-group">
-                  <button className="btn-text" type="button" onClick={() => handleEdit(c)}>
-                    Edit
-                  </button>
-                  <button className="btn-text btn-text--danger" type="button" onClick={() => handleDelete(c)}>
-                    Delete
-                  </button>
+          {commitments?.map((c) =>
+            payingId === c.id ? (
+              <li className="list-card pay-confirm" key={c.id}>
+                <div className="pay-confirm-form">
+                  <p className="async-state">Confirm the payment details before recording it as a transaction.</p>
+                  <div className="field-row">
+                    <label className="field">
+                      <span>Date</span>
+                      <input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} />
+                    </label>
+                    <label className="field">
+                      <span>Amount</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={payAmount}
+                        onChange={(e) => setPayAmount(e.target.value)}
+                      />
+                    </label>
+                  </div>
+                  <label className="field">
+                    <span>Description</span>
+                    <input
+                      type="text"
+                      value={payDescription}
+                      onChange={(e) => setPayDescription(e.target.value)}
+                    />
+                  </label>
+                  {executeCommitment.isError && (
+                    <p className="async-state async-state--error">{(executeCommitment.error as Error).message}</p>
+                  )}
+                  <div className="btn-text-group">
+                    <button
+                      className="btn-primary"
+                      type="button"
+                      onClick={() => confirmPay(c)}
+                      disabled={executeCommitment.isPending}
+                    >
+                      {executeCommitment.isPending ? 'Confirming…' : 'Confirm payment'}
+                    </button>
+                    <button className="btn-secondary" type="button" onClick={cancelPay}>
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div className="list-card-actions">
-                <span className="list-card-amount negative">{formatCurrency(c.amount)}</span>
-                {c.status !== 'paid' && (
-                  <button
-                    className="btn-secondary"
-                    onClick={() => executeCommitment.mutate(c.id)}
-                    disabled={executeCommitment.isPending}
-                  >
-                    Pay
-                  </button>
-                )}
-              </div>
-            </li>
-          ))}
+              </li>
+            ) : (
+              <li className="list-card" key={c.id}>
+                <div className="list-card-main">
+                  <span className="list-card-title">{c.description ?? c.category.name}</span>
+                  <span className="list-card-subtitle">
+                    {c.category.name} · due {formatDate(c.due_date)} · <span className={`badge badge--${c.status}`}>{c.status}</span>
+                  </span>
+                  <div className="btn-text-group">
+                    <button className="btn-text" type="button" onClick={() => handleEdit(c)}>
+                      Edit
+                    </button>
+                    <button className="btn-text btn-text--danger" type="button" onClick={() => handleDelete(c)}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+                <div className="list-card-actions">
+                  <span className="list-card-amount negative">{formatCurrency(c.amount)}</span>
+                  {c.status !== 'paid' && (
+                    <button className="btn-secondary" onClick={() => startPay(c)}>
+                      Pay
+                    </button>
+                  )}
+                </div>
+              </li>
+            ),
+          )}
         </ul>
       </section>
     </div>

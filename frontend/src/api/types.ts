@@ -63,6 +63,12 @@ export interface CommitmentUpdate {
   status?: CommitmentStatus
 }
 
+export interface CommitmentExecute {
+  date?: string
+  amount?: number
+  description?: string | null
+}
+
 export interface DashboardSummary {
   balance: string
   pending_commitments_total: string

@@ -84,6 +84,12 @@ class CommitmentUpdate(BaseModel):
     status: Optional[CommitmentStatus] = None
 
 
+class CommitmentExecute(BaseModel):
+    date: Optional[datetime.date] = None
+    amount: Optional[Decimal] = Field(None, lt=0)
+    description: Optional[str] = None
+
+
 class DashboardSummary(BaseModel):
     balance: Decimal
     pending_commitments_total: Decimal

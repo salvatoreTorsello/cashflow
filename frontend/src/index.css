@@ -302,6 +302,27 @@ body {
   gap: 6px;
 }
 
+.pay-confirm {
+  align-items: stretch;
+}
+
+.pay-confirm-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.field-row {
+  display: flex;
+  gap: 10px;
+}
+
+.field-row .field {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Tabs */
 
 .tabs {

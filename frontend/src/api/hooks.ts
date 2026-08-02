@@ -3,6 +3,7 @@ import { api } from './client'
 import type {
   CategoryCreate,
   CommitmentCreate,
+  CommitmentExecute,
   CommitmentStatus,
   CommitmentUpdate,
   TransactionCreate,
@@ -107,7 +108,7 @@ export function useDeleteCommitment() {
 export function useExecuteCommitment() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: number) => api.commitments.execute(id),
+    mutationFn: ({ id, body }: { id: number; body?: CommitmentExecute }) => api.commitments.execute(id, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['commitments'] })
       qc.invalidateQueries({ queryKey: keys.transactions })

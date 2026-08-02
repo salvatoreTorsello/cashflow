@@ -3,6 +3,7 @@ import type {
   CategoryCreate,
   Commitment,
   CommitmentCreate,
+  CommitmentExecute,
   CommitmentStatus,
   CommitmentUpdate,
   DashboardSummary,
@@ -65,8 +66,11 @@ export const api = {
       request<Commitment>('/commitments', { method: 'POST', body: JSON.stringify(body) }),
     update: (id: number, body: CommitmentUpdate) =>
       request<Commitment>(`/commitments/${id}/edit`, { method: 'PUT', body: JSON.stringify(body) }),
-    execute: (id: number) =>
-      request<Transaction>(`/commitments/${id}/execute`, { method: 'POST' }),
+    execute: (id: number, body?: CommitmentExecute) =>
+      request<Transaction>(`/commitments/${id}/execute`, {
+        method: 'POST',
+        body: body ? JSON.stringify(body) : undefined,
+      }),
     delete: (id: number) => request<void>(`/commitments/${id}`, { method: 'DELETE' }),
   },
   dashboard: {

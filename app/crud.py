@@ -132,7 +132,9 @@ def edit_commitment(
     return db_obj
 
 
-def execute_commitment(db: Session, commitment_id: int):
+def execute_commitment(
+    db: Session, commitment_id: int, obj: schemas.CommitmentExecute | None = None
+):
     db_obj = (
         db.query(models.Commitment)
         .filter(models.Commitment.id == commitment_id)
@@ -142,10 +144,10 @@ def execute_commitment(db: Session, commitment_id: int):
         return None
 
     tx = models.Transaction(
-        date=db_obj.due_date,
-        amount=db_obj.amount,
+        date=obj.date if obj and obj.date else date.today(),
+        amount=obj.amount if obj and obj.amount is not None else db_obj.amount,
         category_id=db_obj.category_id,
-        description=db_obj.description,
+        description=obj.description if obj and obj.description is not None else db_obj.description,
         commitment_id=db_obj.id,
     )
     db_obj.status = models.CommitmentStatus.paid
