@@ -98,7 +98,7 @@ export const api = {
         `/workspaces/${workspaceId}/commitments${status ? `?status=${status}` : ''}`,
       ),
     create: (workspaceId: number, body: CommitmentCreate) =>
-      request<Commitment>(`/workspaces/${workspaceId}/commitments`, {
+      request<Commitment[]>(`/workspaces/${workspaceId}/commitments`, {
         method: 'POST',
         body: JSON.stringify(body),
       }),
@@ -112,8 +112,10 @@ export const api = {
         method: 'POST',
         body: body ? JSON.stringify(body) : undefined,
       }),
-    delete: (workspaceId: number, id: number) =>
-      request<void>(`/workspaces/${workspaceId}/commitments/${id}`, { method: 'DELETE' }),
+    delete: (workspaceId: number, id: number, scope: 'single' | 'series' = 'single') =>
+      request<void>(`/workspaces/${workspaceId}/commitments/${id}?scope=${scope}`, {
+        method: 'DELETE',
+      }),
   },
   dashboard: {
     get: (workspaceId: number) => request<DashboardSummary>(`/workspaces/${workspaceId}/dashboard`),

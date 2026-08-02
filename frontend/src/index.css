@@ -455,6 +455,16 @@ body {
   gap: 10px;
 }
 
+.installment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.installment-list .list {
+  gap: 8px;
+}
+
 .field-row .field {
   flex: 1;
   min-width: 0;

@@ -66,6 +66,17 @@ export interface TransactionUpdate {
   commitment_id?: number | null
 }
 
+export type CommitmentType = 'one_time' | 'periodic' | 'installment'
+export type IntervalUnit = 'day' | 'week' | 'month' | 'year'
+
+export interface CommitmentSeries {
+  id: number
+  type: CommitmentType
+  interval_count: number
+  interval_unit: IntervalUnit
+  total_installments: number | null
+}
+
 export interface Commitment {
   id: number
   due_date: string
@@ -74,14 +85,25 @@ export interface Commitment {
   category: Category
   description: string | null
   status: CommitmentStatus
+  series_id: number | null
+  installment_number: number | null
+  series: CommitmentSeries | null
 }
 
 export interface CommitmentCreate {
+  type?: CommitmentType
   due_date: string
-  amount: number
   category_id: number
   description?: string | null
   status?: CommitmentStatus
+  // one_time and periodic: a single repeated amount.
+  amount?: number
+  // periodic and installment.
+  interval_count?: number
+  interval_unit?: IntervalUnit
+  // installment only.
+  total_installments?: number
+  installment_amounts?: number[]
 }
 
 export interface CommitmentUpdate {

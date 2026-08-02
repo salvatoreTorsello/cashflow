@@ -1,5 +1,5 @@
 import { Suspense, lazy, useState, type FormEvent } from 'react'
-import type { Commitment, CommitmentStatus } from '../api/types'
+import type { Commitment, CommitmentStatus, CommitmentType, IntervalUnit } from '../api/types'
 import {
   useCategories,
   useCommitments,
@@ -20,12 +20,48 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10)
 }
 
+// Client-side preview only — the server computes the authoritative dates.
+function addIntervalPreview(dateStr: string, count: number, unit: IntervalUnit): string {
+  const d = new Date(`${dateStr}T00:00:00`)
+  if (unit === 'day') {
+    d.setDate(d.getDate() + count)
+  } else if (unit === 'week') {
+    d.setDate(d.getDate() + count * 7)
+  } else if (unit === 'month' || unit === 'year') {
+    const day = d.getDate()
+    d.setDate(1)
+    if (unit === 'month') d.setMonth(d.getMonth() + count)
+    else d.setFullYear(d.getFullYear() + count)
+    const lastDayOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+    d.setDate(Math.min(day, lastDayOfMonth))
+  }
+  return d.toISOString().slice(0, 10)
+}
+
 const FILTERS: Array<{ label: string; value: CommitmentStatus | undefined }> = [
   { label: 'All', value: undefined },
   { label: 'Pending', value: 'pending' },
   { label: 'Confirmed', value: 'confirmed' },
   { label: 'Paid', value: 'paid' },
 ]
+
+type PeriodPresetKey = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'semiannual' | 'yearly' | 'custom'
+
+const PERIOD_PRESETS: Record<Exclude<PeriodPresetKey, 'custom'>, { label: string; count: number; unit: IntervalUnit }> = {
+  weekly: { label: 'Weekly', count: 1, unit: 'week' },
+  biweekly: { label: 'Every 2 weeks', count: 2, unit: 'week' },
+  monthly: { label: 'Monthly', count: 1, unit: 'month' },
+  quarterly: { label: 'Every 3 months', count: 3, unit: 'month' },
+  semiannual: { label: 'Every 6 months', count: 6, unit: 'month' },
+  yearly: { label: 'Yearly', count: 1, unit: 'year' },
+}
+
+const UNIT_LABELS: Record<IntervalUnit, string> = {
+  day: 'day(s)',
+  week: 'week(s)',
+  month: 'month(s)',
+  year: 'year(s)',
+}
 
 export default function CommitmentsPage() {
   const [filter, setFilter] = useState<CommitmentStatus | undefined>('pending')
@@ -45,6 +81,13 @@ export default function CommitmentsPage() {
   const [categoryId, setCategoryId] = useState('')
   const [description, setDescription] = useState('')
 
+  const [type, setType] = useState<CommitmentType>('one_time')
+  const [periodPreset, setPeriodPreset] = useState<PeriodPresetKey>('monthly')
+  const [customCount, setCustomCount] = useState('1')
+  const [customUnit, setCustomUnit] = useState<IntervalUnit>('month')
+  const [totalInstallments, setTotalInstallments] = useState('')
+  const [installmentAmounts, setInstallmentAmounts] = useState<string[]>([])
+
   const [payingId, setPayingId] = useState<number | null>(null)
   const [payDate, setPayDate] = useState(todayISO())
   const [payAmount, setPayAmount] = useState('')
@@ -53,12 +96,33 @@ export default function CommitmentsPage() {
   const isEditing = editingId !== null
   const isSaving = createCommitment.isPending || updateCommitment.isPending
 
+  const { count: intervalCount, unit: intervalUnit } =
+    periodPreset === 'custom'
+      ? { count: Number(customCount) || 1, unit: customUnit }
+      : PERIOD_PRESETS[periodPreset]
+
   function resetForm() {
     setEditingId(null)
     setDueDate(todayISO())
     setAmount('')
     setCategoryId('')
     setDescription('')
+    setType('one_time')
+    setPeriodPreset('monthly')
+    setCustomCount('1')
+    setCustomUnit('month')
+    setTotalInstallments('')
+    setInstallmentAmounts([])
+  }
+
+  function handleTotalInstallmentsChange(value: string) {
+    setTotalInstallments(value)
+    const n = Math.max(0, Math.floor(Number(value) || 0))
+    setInstallmentAmounts((prev) => {
+      const next = prev.slice(0, n)
+      while (next.length < n) next.push('')
+      return next
+    })
   }
 
   function handleEdit(c: Commitment) {
@@ -98,32 +162,105 @@ export default function CommitmentsPage() {
 
   function handleDelete(c: Commitment) {
     if (!window.confirm('Delete this commitment?')) return
+
+    let scope: 'single' | 'series' = 'single'
+    if (c.series_id !== null) {
+      scope = window.confirm(
+        'This commitment is part of a recurring series.\n\n' +
+          'OK — delete this AND all future unpaid occurrences in the series.\n' +
+          'Cancel — delete only this one occurrence.',
+      )
+        ? 'series'
+        : 'single'
+    }
+
     const linkedTransaction = transactions?.find((t) => t.commitment_id === c.id)
-    deleteCommitment.mutate(c.id, {
-      onSuccess: () => {
-        if (linkedTransaction && window.confirm('Also delete the linked transaction?')) {
-          deleteTransaction.mutate(linkedTransaction.id)
-        }
+    deleteCommitment.mutate(
+      { id: c.id, scope },
+      {
+        onSuccess: () => {
+          if (linkedTransaction && window.confirm('Also delete the linked transaction?')) {
+            deleteTransaction.mutate(linkedTransaction.id)
+          }
+        },
       },
-    })
+    )
   }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    const magnitude = Number(amount)
-    if (!magnitude || !categoryId) return
-    const body = {
-      due_date: dueDate,
-      amount: -Math.abs(magnitude),
-      category_id: Number(categoryId),
-      description: description || null,
-    }
+    if (!categoryId) return
 
     if (editingId !== null) {
-      updateCommitment.mutate({ id: editingId, body }, { onSuccess: resetForm })
-    } else {
-      createCommitment.mutate(body, { onSuccess: resetForm })
+      const magnitude = Number(amount)
+      if (!magnitude) return
+      updateCommitment.mutate(
+        {
+          id: editingId,
+          body: {
+            due_date: dueDate,
+            amount: -Math.abs(magnitude),
+            category_id: Number(categoryId),
+            description: description || null,
+          },
+        },
+        { onSuccess: resetForm },
+      )
+      return
     }
+
+    if (type === 'one_time') {
+      const magnitude = Number(amount)
+      if (!magnitude) return
+      createCommitment.mutate(
+        {
+          type: 'one_time',
+          due_date: dueDate,
+          amount: -Math.abs(magnitude),
+          category_id: Number(categoryId),
+          description: description || null,
+        },
+        { onSuccess: resetForm },
+      )
+      return
+    }
+
+    if (type === 'periodic') {
+      const magnitude = Number(amount)
+      if (!magnitude || !description) return
+      createCommitment.mutate(
+        {
+          type: 'periodic',
+          due_date: dueDate,
+          amount: -Math.abs(magnitude),
+          category_id: Number(categoryId),
+          description,
+          interval_count: intervalCount,
+          interval_unit: intervalUnit,
+        },
+        { onSuccess: resetForm },
+      )
+      return
+    }
+
+    // installment
+    const total = Number(totalInstallments)
+    if (!total || !description) return
+    const amounts = installmentAmounts.map((a) => -Math.abs(Number(a)))
+    if (amounts.length !== total || amounts.some((a) => !a)) return
+    createCommitment.mutate(
+      {
+        type: 'installment',
+        due_date: dueDate,
+        category_id: Number(categoryId),
+        description,
+        interval_count: intervalCount,
+        interval_unit: intervalUnit,
+        total_installments: total,
+        installment_amounts: amounts,
+      },
+      { onSuccess: resetForm },
+    )
   }
 
   return (
@@ -131,23 +268,90 @@ export default function CommitmentsPage() {
       <h1 className="page-title">Commitments</h1>
 
       <form className="form-card" onSubmit={handleSubmit}>
+        {!isEditing && (
+          <label className="field">
+            <span>Type</span>
+            <select value={type} onChange={(e) => setType(e.target.value as CommitmentType)}>
+              <option value="one_time">One-time</option>
+              <option value="periodic">Periodic (repeats)</option>
+              <option value="installment">Installment (fixed number of payments)</option>
+            </select>
+          </label>
+        )}
+
         <label className="field">
-          <span>Due date</span>
+          <span>{type === 'one_time' || isEditing ? 'Due date' : 'Start date'}</span>
           <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required />
         </label>
 
-        <label className="field">
-          <span>Amount</span>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="e.g. 1450"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            required
-          />
-        </label>
+        {!isEditing && type !== 'one_time' && (
+          <label className="field">
+            <span>Repeats</span>
+            <select
+              value={periodPreset}
+              onChange={(e) => setPeriodPreset(e.target.value as PeriodPresetKey)}
+            >
+              {Object.entries(PERIOD_PRESETS).map(([key, preset]) => (
+                <option key={key} value={key}>
+                  {preset.label}
+                </option>
+              ))}
+              <option value="custom">Custom…</option>
+            </select>
+          </label>
+        )}
+
+        {!isEditing && type !== 'one_time' && periodPreset === 'custom' && (
+          <div className="field-row">
+            <label className="field">
+              <span>Every</span>
+              <input
+                type="number"
+                min="1"
+                value={customCount}
+                onChange={(e) => setCustomCount(e.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span>Unit</span>
+              <select value={customUnit} onChange={(e) => setCustomUnit(e.target.value as IntervalUnit)}>
+                {(Object.keys(UNIT_LABELS) as IntervalUnit[]).map((u) => (
+                  <option key={u} value={u}>
+                    {UNIT_LABELS[u]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
+
+        {(isEditing || type === 'one_time' || type === 'periodic') && (
+          <label className="field">
+            <span>{type === 'periodic' && !isEditing ? 'Amount (repeated each period)' : 'Amount'}</span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="e.g. 1450"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+            />
+          </label>
+        )}
+
+        {!isEditing && type === 'installment' && (
+          <label className="field">
+            <span>Total installments</span>
+            <input
+              type="number"
+              min="1"
+              value={totalInstallments}
+              onChange={(e) => handleTotalInstallmentsChange(e.target.value)}
+              required
+            />
+          </label>
+        )}
 
         <label className="field">
           <span>Category</span>
@@ -164,14 +368,45 @@ export default function CommitmentsPage() {
         </label>
 
         <label className="field">
-          <span>Description</span>
+          <span>Description{!isEditing && type !== 'one_time' ? ' (required for a series)' : ''}</span>
           <input
             type="text"
-            placeholder="Optional"
+            placeholder={!isEditing && type !== 'one_time' ? 'Required' : 'Optional'}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            required={!isEditing && type !== 'one_time'}
           />
         </label>
+
+        {!isEditing && type === 'installment' && installmentAmounts.length > 0 && (
+          <div className="installment-list">
+            <span className="section-title">Installment amounts</span>
+            <div className="list">
+              {installmentAmounts.map((value, i) => {
+                const previewDate = addIntervalPreview(dueDate, intervalCount * i, intervalUnit)
+                return (
+                  <label className="field" key={i}>
+                    <span>
+                      #{i + 1}/{installmentAmounts.length} · due {formatDate(previewDate)}
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={value}
+                      onChange={(e) => {
+                        const next = [...installmentAmounts]
+                        next[i] = e.target.value
+                        setInstallmentAmounts(next)
+                      }}
+                      required
+                    />
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {(createCommitment.isError || updateCommitment.isError) && (
           <p className="async-state async-state--error">
@@ -269,6 +504,7 @@ export default function CommitmentsPage() {
                   <span className="list-card-title">{c.description ?? c.category.name}</span>
                   <span className="list-card-subtitle">
                     {c.category.name} · due {formatDate(c.due_date)} · <span className={`badge badge--${c.status}`}>{c.status}</span>
+                    {c.series?.type === 'periodic' && ' · repeats'}
                   </span>
                   <div className="btn-text-group">
                     <button className="btn-text" type="button" onClick={() => handleEdit(c)}>

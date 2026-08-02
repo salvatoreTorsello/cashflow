@@ -133,7 +133,8 @@ export function useDeleteCommitment() {
   const { currentWorkspace } = useWorkspace()
   const workspaceId = currentWorkspace!.id
   return useMutation({
-    mutationFn: (id: number) => api.commitments.delete(workspaceId, id),
+    mutationFn: ({ id, scope }: { id: number; scope?: 'single' | 'series' }) =>
+      api.commitments.delete(workspaceId, id, scope),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['commitments', workspaceId] })
       qc.invalidateQueries({ queryKey: keys.transactions(workspaceId) })
