@@ -53,7 +53,7 @@ Images are built and pushed to `ghcr.io/salvatoretorsello/cashflow-{backend,fron
 
 ## Developer Hints
 
-- **Database:** SQLite is used by default. Switch to PostgreSQL by changing `DATABASE_URL` in `.env`.
+- **Database:** PostgreSQL is used both locally and in production. For local dev, run `docker compose -f docker-compose.dev.yml up -d` and keep the default `DATABASE_URL` in `.env`.
 - **Migrations:** Alembic owns the schema — the app no longer auto-creates tables. Run `alembic -c alembic/alembic.ini upgrade head` before starting the server, and after changing `app/models.py` generate a new revision with `alembic -c alembic/alembic.ini revision --autogenerate -m "message"`.
 - **ORM:** SQLAlchemy 2.0 style is used (`Mapped`, `mapped_column`). Classic `session.query` is used in CRUD for readability; feel free to migrate to `select()` if you prefer.
 - **Stateless clients:** The Telegram bot, dashboard, and future mobile app are all stateless API consumers. Keep business logic in the backend.
@@ -69,7 +69,7 @@ Images are built and pushed to `ghcr.io/salvatoretorsello/cashflow-{backend,fron
 |-------|------------|
 | API | FastAPI |
 | ORM | SQLAlchemy 2.0 |
-| DB | SQLite (local) / PostgreSQL (prod) |
+| DB | PostgreSQL (local via Docker / prod) |
 | Validation | Pydantic v2 |
 | Web UI | React + Vite (PWA) |
 | Docs | GitHub Pages (Jekyll) |

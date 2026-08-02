@@ -7,7 +7,7 @@ title: Developer Guide
 
 ## Architecture
 
-CashFlow is an API-first Python application. The backend exposes a REST interface built with FastAPI and persists data through SQLAlchemy. The database layer is abstracted: SQLite is used for local development and can be replaced by PostgreSQL in production by changing a single environment variable.
+CashFlow is an API-first Python application. The backend exposes a REST interface built with FastAPI and persists data through SQLAlchemy. The database layer is abstracted: PostgreSQL is used both locally (via `docker-compose.dev.yml`) and in production, configured through a single environment variable.
 
 All front-end layers (web dashboard, Telegram bot, mobile application) are stateless clients that consume the REST API.
 
@@ -120,7 +120,13 @@ Copy `.env.example` to `.env`:
 cp .env.example .env
 ```
 
-For local development, SQLite is pre-configured.
+For local development, start a Postgres container and point `DATABASE_URL` at it:
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+`.env.example` already defaults to `postgresql+psycopg://cashflow:cashflow@localhost:5432/cashflow`, matching this container.
 
 ### Database Initialization
 
