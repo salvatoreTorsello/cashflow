@@ -4,6 +4,8 @@ from decimal import Decimal
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
+    Boolean,
+    Integer,
     Numeric,
     String,
     Date,
@@ -12,6 +14,7 @@ from sqlalchemy import (
     UniqueConstraint,
     Enum as SQLEnum,
     func,
+    true as sa_true,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -22,6 +25,19 @@ class CommitmentStatus(str, PyEnum):
     pending = "pending"
     confirmed = "confirmed"
     paid = "paid"
+
+
+class CommitmentType(str, PyEnum):
+    one_time = "one_time"
+    periodic = "periodic"
+    installment = "installment"
+
+
+class IntervalUnit(str, PyEnum):
+    day = "day"
+    week = "week"
+    month = "month"
+    year = "year"
 
 
 class User(Base):
@@ -76,6 +92,33 @@ class Workspace(Base):
     )
     commitments: Mapped[List["Commitment"]] = relationship(
         "Commitment", back_populates="workspace", cascade="all, delete-orphan"
+    )
+    commitment_series: Mapped[List["CommitmentSeries"]] = relationship(
+        "CommitmentSeries", back_populates="workspace", cascade="all, delete-orphan"
+    )
+
+
+class CommitmentSeries(Base):
+    __tablename__ = "commitment_series"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id"))
+    type: Mapped[CommitmentType] = mapped_column(SQLEnum(CommitmentType))
+    interval_count: Mapped[int] = mapped_column(Integer)
+    interval_unit: Mapped[IntervalUnit] = mapped_column(SQLEnum(IntervalUnit))
+    # Only set for installment series — periodic series have no fixed end.
+    total_installments: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # False once a "delete this and future occurrences" action has cancelled
+    # the series — checked before replenishing so paying an older, still-
+    # pending occurrence can't resurrect a series the user already ended.
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=sa_true())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    workspace: Mapped["Workspace"] = relationship("Workspace", back_populates="commitment_series")
+    commitments: Mapped[List["Commitment"]] = relationship(
+        "Commitment", back_populates="series", cascade="all, delete-orphan"
     )
 
 
@@ -133,6 +176,11 @@ class Commitment(Base):
     status: Mapped[CommitmentStatus] = mapped_column(
         SQLEnum(CommitmentStatus), default=CommitmentStatus.pending
     )
+    series_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("commitment_series.id"), nullable=True
+    )
+    # Only set for installment occurrences — position within the series (1-based).
+    installment_number: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     workspace: Mapped["Workspace"] = relationship("Workspace", back_populates="commitments")
     category: Mapped["Category"] = relationship(
@@ -140,4 +188,7 @@ class Commitment(Base):
     )
     transactions: Mapped[List["Transaction"]] = relationship(
         "Transaction", back_populates="commitment"
+    )
+    series: Mapped[Optional["CommitmentSeries"]] = relationship(
+        "CommitmentSeries", back_populates="commitments"
     )

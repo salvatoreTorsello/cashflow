@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 from decimal import Decimal
 from typing import Optional
 
-from app.models import CommitmentStatus
+from app.models import CommitmentStatus, CommitmentType, IntervalUnit
 
 
 class UserCreate(BaseModel):
@@ -98,13 +98,70 @@ class CommitmentBase(BaseModel):
     status: CommitmentStatus = CommitmentStatus.pending
 
 
-class CommitmentCreate(CommitmentBase):
-    pass
+class CommitmentCreate(BaseModel):
+    type: CommitmentType = CommitmentType.one_time
+    due_date: datetime.date
+    category_id: int
+    description: Optional[str] = None
+    status: CommitmentStatus = CommitmentStatus.pending
+
+    # one_time and periodic: a single repeated amount.
+    amount: Optional[Decimal] = Field(None, lt=0)
+    # periodic and installment.
+    interval_count: Optional[int] = Field(None, ge=1)
+    interval_unit: Optional[IntervalUnit] = None
+    # installment only.
+    total_installments: Optional[int] = Field(None, ge=1)
+    installment_amounts: Optional[list[Decimal]] = None
+
+    @model_validator(mode="after")
+    def validate_by_type(self):
+        if self.type == CommitmentType.one_time:
+            if self.amount is None:
+                raise ValueError("amount is required for one-time commitments")
+        elif self.type == CommitmentType.periodic:
+            if self.amount is None:
+                raise ValueError("amount is required for periodic commitments")
+            if self.interval_count is None or self.interval_unit is None:
+                raise ValueError(
+                    "interval_count and interval_unit are required for periodic commitments"
+                )
+            if not self.description:
+                raise ValueError("description is required for periodic commitments")
+        elif self.type == CommitmentType.installment:
+            if self.interval_count is None or self.interval_unit is None:
+                raise ValueError(
+                    "interval_count and interval_unit are required for installment commitments"
+                )
+            if not self.total_installments:
+                raise ValueError("total_installments is required for installment commitments")
+            if not self.installment_amounts or len(self.installment_amounts) != self.total_installments:
+                raise ValueError(
+                    "installment_amounts must have exactly total_installments entries"
+                )
+            if any(a >= 0 for a in self.installment_amounts):
+                raise ValueError("installment amounts must be negative")
+            if not self.description:
+                raise ValueError("description is required for installment commitments")
+        return self
+
+
+class CommitmentSeriesOut(BaseModel):
+    id: int
+    type: CommitmentType
+    interval_count: int
+    interval_unit: IntervalUnit
+    total_installments: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CommitmentOut(CommitmentBase):
     id: int
     category: CategoryOut
+    series_id: Optional[int] = None
+    installment_number: Optional[int] = None
+    series: Optional[CommitmentSeriesOut] = None
 
     model_config = ConfigDict(from_attributes=True)
 
