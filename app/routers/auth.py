@@ -7,7 +7,7 @@ from app.dependencies import SESSION_COOKIE_NAME, get_current_user, get_db
 from app.security import (
     generate_session_token,
     hash_password,
-    hash_session_token,
+    hash_token,
     session_expiry,
     verify_password,
 )
@@ -22,7 +22,7 @@ def _login(db: Session, response: Response, user: models.User) -> None:
     crud.create_session(
         db,
         user_id=user.id,
-        token_hash=hash_session_token(token),
+        token_hash=hash_token(token),
         expires_at=session_expiry(),
     )
     response.set_cookie(
@@ -67,7 +67,7 @@ def logout(
     db: Session = Depends(get_db),
 ):
     if cf_session:
-        crud.delete_session(db, hash_session_token(cf_session))
+        crud.delete_session(db, hash_token(cf_session))
     response.delete_cookie(SESSION_COOKIE_NAME, path="/")
 
 
