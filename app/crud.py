@@ -1,5 +1,5 @@
 import calendar
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
@@ -51,17 +51,38 @@ def delete_session(db: Session, token_hash: str) -> None:
 def create_workspace(db: Session, owner_id: int, name: str) -> models.Workspace:
     db_obj = models.Workspace(owner_id=owner_id, name=name)
     db.add(db_obj)
+    db.flush()
+    db.add(models.WorkspaceMember(workspace_id=db_obj.id, user_id=owner_id))
     db.commit()
     db.refresh(db_obj)
     return db_obj
 
 
-def get_workspaces(db: Session, owner_id: int):
+def get_workspaces(db: Session, user_id: int):
     return (
         db.query(models.Workspace)
-        .filter(models.Workspace.owner_id == owner_id)
+        .join(
+            models.WorkspaceMember,
+            models.WorkspaceMember.workspace_id == models.Workspace.id,
+        )
+        .filter(models.WorkspaceMember.user_id == user_id)
         .order_by(models.Workspace.created_at)
         .all()
+    )
+
+
+def get_workspace_for_member(db: Session, workspace_id: int, user_id: int):
+    return (
+        db.query(models.Workspace)
+        .join(
+            models.WorkspaceMember,
+            models.WorkspaceMember.workspace_id == models.Workspace.id,
+        )
+        .filter(
+            models.Workspace.id == workspace_id,
+            models.WorkspaceMember.user_id == user_id,
+        )
+        .first()
     )
 
 
@@ -75,6 +96,73 @@ def rename_workspace(db: Session, workspace: models.Workspace, name: str):
 def delete_workspace(db: Session, workspace: models.Workspace) -> None:
     db.delete(workspace)
     db.commit()
+
+
+## Workspace invites
+
+
+def create_invite(db: Session, workspace_id: int, code_hash: str, expires_at: datetime):
+    # Only one active invite per workspace — generating a new one replaces
+    # any still-pending old one, so there's a single unambiguous code (and
+    # countdown) in the UI at any time.
+    db.query(models.WorkspaceInvite).filter(
+        models.WorkspaceInvite.workspace_id == workspace_id
+    ).delete()
+    invite = models.WorkspaceInvite(
+        workspace_id=workspace_id, code_hash=code_hash, expires_at=expires_at
+    )
+    db.add(invite)
+    db.commit()
+    db.refresh(invite)
+    return invite
+
+
+def get_active_invite(db: Session, workspace_id: int):
+    invite = (
+        db.query(models.WorkspaceInvite)
+        .filter(models.WorkspaceInvite.workspace_id == workspace_id)
+        .first()
+    )
+    if invite is None:
+        return None
+    if invite.expires_at < datetime.now(timezone.utc):
+        db.delete(invite)
+        db.commit()
+        return None
+    return invite
+
+
+def redeem_invite(db: Session, code_hash: str, user_id: int):
+    invite = (
+        db.query(models.WorkspaceInvite)
+        .filter(models.WorkspaceInvite.code_hash == code_hash)
+        .first()
+    )
+    if invite is None:
+        return None
+    if invite.expires_at < datetime.now(timezone.utc):
+        db.delete(invite)
+        db.commit()
+        return None
+
+    workspace = (
+        db.query(models.Workspace)
+        .filter(models.Workspace.id == invite.workspace_id)
+        .first()
+    )
+    already_member = (
+        db.query(models.WorkspaceMember)
+        .filter(
+            models.WorkspaceMember.workspace_id == invite.workspace_id,
+            models.WorkspaceMember.user_id == user_id,
+        )
+        .first()
+    )
+    if not already_member:
+        db.add(models.WorkspaceMember(workspace_id=invite.workspace_id, user_id=user_id))
+    db.delete(invite)
+    db.commit()
+    return workspace
 
 
 ## Categories
