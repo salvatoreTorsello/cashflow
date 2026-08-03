@@ -36,8 +36,22 @@ class WorkspaceOut(BaseModel):
     id: int
     name: str
     created_at: datetime.datetime
+    is_owner: bool
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class WorkspaceJoinRequest(BaseModel):
+    code: str = Field(..., min_length=1)
+
+
+class WorkspaceInviteOut(BaseModel):
+    code: str
+    expires_at: datetime.datetime
+
+
+class WorkspaceInviteStatus(BaseModel):
+    expires_at: Optional[datetime.datetime] = None
 
 
 class CategoryBase(BaseModel):

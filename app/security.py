@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import bcrypt
 
 SESSION_TTL = timedelta(days=30)
+INVITE_TTL = timedelta(minutes=10)
 
 
 def hash_password(password: str) -> str:
@@ -19,9 +20,17 @@ def generate_session_token() -> str:
     return secrets.token_urlsafe(32)
 
 
-def hash_session_token(token: str) -> str:
+def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 def session_expiry() -> datetime:
     return datetime.now(timezone.utc) + SESSION_TTL
+
+
+def generate_invite_code() -> str:
+    return secrets.token_urlsafe(9)
+
+
+def invite_expiry() -> datetime:
+    return datetime.now(timezone.utc) + INVITE_TTL
