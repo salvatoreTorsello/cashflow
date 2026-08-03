@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError } from '../api/client'
-import type { Workspace, WorkspaceCreate } from '../api/types'
+import type { Workspace, WorkspaceCreate, WorkspaceJoinRequest } from '../api/types'
 import { useAuth } from './AuthContext'
 
 const STORAGE_KEY = 'cashflow.currentWorkspaceId'
@@ -14,6 +14,8 @@ interface WorkspaceContextValue {
   selectWorkspace: (id: number) => void
   createWorkspace: (body: WorkspaceCreate) => Promise<Workspace>
   createError: string | null
+  joinWorkspace: (body: WorkspaceJoinRequest) => Promise<Workspace>
+  joinError: string | null
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null)
@@ -70,6 +72,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     },
   })
 
+  const joinMutation = useMutation({
+    mutationFn: api.workspaces.join,
+    onSuccess: (workspace) => {
+      qc.setQueryData(WORKSPACES_KEY, (old: Workspace[] | undefined) =>
+        old ? [...old, workspace] : [workspace],
+      )
+      selectWorkspace(workspace.id)
+    },
+  })
+
   const currentWorkspace = workspaces?.find((w) => w.id === currentId) ?? null
 
   const value: WorkspaceContextValue = {
@@ -79,6 +91,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     selectWorkspace,
     createWorkspace: (body) => createMutation.mutateAsync(body),
     createError: createMutation.error ? (createMutation.error as ApiError).message : null,
+    joinWorkspace: (body) => joinMutation.mutateAsync(body),
+    joinError: joinMutation.error ? (joinMutation.error as ApiError).message : null,
   }
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>

@@ -16,6 +16,9 @@ import type {
   User,
   Workspace,
   WorkspaceCreate,
+  WorkspaceInvite,
+  WorkspaceInviteStatus,
+  WorkspaceJoinRequest,
   WorkspaceUpdate,
 } from './types'
 
@@ -67,6 +70,12 @@ export const api = {
     rename: (id: number, body: WorkspaceUpdate) =>
       request<Workspace>(`/workspaces/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
     delete: (id: number) => request<void>(`/workspaces/${id}`, { method: 'DELETE' }),
+    join: (body: WorkspaceJoinRequest) =>
+      request<Workspace>('/workspaces/join', { method: 'POST', body: JSON.stringify(body) }),
+    createInvite: (id: number) =>
+      request<WorkspaceInvite>(`/workspaces/${id}/invite`, { method: 'POST' }),
+    getInviteStatus: (id: number) =>
+      request<WorkspaceInviteStatus>(`/workspaces/${id}/invite`),
   },
   categories: {
     list: (workspaceId: number) => request<Category[]>(`/workspaces/${workspaceId}/categories`),

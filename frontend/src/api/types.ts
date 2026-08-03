@@ -19,6 +19,7 @@ export interface Workspace {
   id: number
   name: string
   created_at: string
+  is_owner: boolean
 }
 
 export interface WorkspaceCreate {
@@ -27,6 +28,19 @@ export interface WorkspaceCreate {
 
 export interface WorkspaceUpdate {
   name: string
+}
+
+export interface WorkspaceJoinRequest {
+  code: string
+}
+
+export interface WorkspaceInvite {
+  code: string
+  expires_at: string
+}
+
+export interface WorkspaceInviteStatus {
+  expires_at: string | null
 }
 
 export interface Category {
