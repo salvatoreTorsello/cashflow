@@ -1,4 +1,5 @@
 import datetime
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -27,8 +28,11 @@ def get(
 @router.get("/predictions", response_model=schemas.PredictionResponse)
 def predictions(
     date: datetime.date | None = None,
+    average_salary: Decimal | None = None,
     workspace: models.Workspace = Depends(get_current_workspace),
     db: Session = Depends(get_db),
 ):
-    result = crud.get_prediction(db, workspace.id, target_date=date)
+    result = crud.get_prediction(
+        db, workspace.id, target_date=date, average_salary_override=average_salary
+    )
     return schemas.PredictionResponse(**result)
