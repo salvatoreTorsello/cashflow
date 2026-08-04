@@ -1,15 +1,11 @@
 import { Suspense, lazy, useState } from 'react'
 import { usePredictions } from '../api/hooks'
 import type { MonthlyNet } from '../lib/aggregate'
-import { formatCurrency, formatDate } from '../lib/format'
+import { formatCurrency, formatDate, todayLocalISO } from '../lib/format'
 import StatCard from '../components/StatCard'
 import AsyncState from '../components/AsyncState'
 
 const BurnRateChart = lazy(() => import('../components/BurnRateChart'))
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10)
-}
 
 function toMonthlyNet(point: { date: string; balance: string }): MonthlyNet {
   return { key: point.date, label: formatDate(point.date), net: Number(point.balance) }
@@ -104,7 +100,7 @@ export default function PredictionsPage() {
                 <span>Date</span>
                 <input
                   type="date"
-                  min={todayISO()}
+                  min={todayLocalISO()}
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
                 />

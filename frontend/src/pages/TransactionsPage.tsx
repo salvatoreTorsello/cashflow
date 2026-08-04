@@ -7,12 +7,8 @@ import {
   useTransactions,
   useUpdateTransaction,
 } from '../api/hooks'
-import { formatCurrency, formatDate } from '../lib/format'
+import { formatCurrency, formatDate, todayLocalISO } from '../lib/format'
 import AsyncState from '../components/AsyncState'
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10)
-}
 
 export default function TransactionsPage() {
   const { data: transactions, isLoading, error } = useTransactions()
@@ -22,7 +18,7 @@ export default function TransactionsPage() {
   const deleteTransaction = useDeleteTransaction()
 
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [date, setDate] = useState(todayISO())
+  const [date, setDate] = useState(todayLocalISO())
   const [amount, setAmount] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [description, setDescription] = useState('')
@@ -32,7 +28,7 @@ export default function TransactionsPage() {
 
   function resetForm() {
     setEditingId(null)
-    setDate(todayISO())
+    setDate(todayLocalISO())
     setAmount('')
     setCategoryId('')
     setDescription('')

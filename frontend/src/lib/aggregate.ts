@@ -1,4 +1,5 @@
 import type { Commitment, Transaction } from '../api/types'
+import { parseLocalDate } from './format'
 
 export interface MonthlyNet {
   key: string
@@ -23,7 +24,7 @@ export function monthlyNetCashFlow(transactions: Transaction[], months = 6): Mon
   const byKey = new Map(buckets.map((b) => [b.key, b]))
 
   for (const t of transactions) {
-    const d = new Date(t.date)
+    const d = parseLocalDate(t.date)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     const bucket = byKey.get(key)
     if (bucket) bucket.net += Number(t.amount)
@@ -49,7 +50,7 @@ export function monthlyCommitmentTotals(commitments: Commitment[], months = 5): 
   const byKey = new Map(buckets.map((b) => [b.key, b]))
 
   for (const c of commitments) {
-    const d = new Date(c.due_date)
+    const d = parseLocalDate(c.due_date)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     const bucket = byKey.get(key)
     if (bucket) bucket.net += Number(c.amount)

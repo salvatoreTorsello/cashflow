@@ -11,18 +11,18 @@ import {
   useUpdateCommitment,
 } from '../api/hooks'
 import { monthlyCommitmentTotals } from '../lib/aggregate'
-import { formatCurrency, formatDate } from '../lib/format'
+import { formatCurrency, formatDate, parseLocalDate, todayLocalISO, toLocalDateString } from '../lib/format'
 import AsyncState from '../components/AsyncState'
 
 const BurnRateChart = lazy(() => import('../components/BurnRateChart'))
 
-function todayISO() {
-  return new Date().toISOString().slice(0, 10)
-}
-
-// Client-side preview only — the server computes the authoritative dates.
+// Client-side preview only — the server computes the authoritative dates,
+// using the same fixed-day-of-month logic (see crud.py's _add_months): the
+// day of month stays fixed across occurrences, clamping to the last day of
+// a shorter month (e.g. Jan 31 -> Feb 28) and recovering it again in a later,
+// longer month (e.g. -> Mar 31), rather than drifting permanently.
 function addIntervalPreview(dateStr: string, count: number, unit: IntervalUnit): string {
-  const d = new Date(`${dateStr}T00:00:00`)
+  const d = parseLocalDate(dateStr)
   if (unit === 'day') {
     d.setDate(d.getDate() + count)
   } else if (unit === 'week') {
@@ -35,7 +35,7 @@ function addIntervalPreview(dateStr: string, count: number, unit: IntervalUnit):
     const lastDayOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
     d.setDate(Math.min(day, lastDayOfMonth))
   }
-  return d.toISOString().slice(0, 10)
+  return toLocalDateString(d)
 }
 
 const FILTERS: Array<{ label: string; value: CommitmentStatus | undefined }> = [
@@ -76,7 +76,7 @@ export default function CommitmentsPage() {
   const deleteTransaction = useDeleteTransaction()
 
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [dueDate, setDueDate] = useState(todayISO())
+  const [dueDate, setDueDate] = useState(todayLocalISO())
   const [amount, setAmount] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [description, setDescription] = useState('')
@@ -89,7 +89,7 @@ export default function CommitmentsPage() {
   const [installmentAmounts, setInstallmentAmounts] = useState<string[]>([])
 
   const [payingId, setPayingId] = useState<number | null>(null)
-  const [payDate, setPayDate] = useState(todayISO())
+  const [payDate, setPayDate] = useState(todayLocalISO())
   const [payAmount, setPayAmount] = useState('')
   const [payDescription, setPayDescription] = useState('')
 
@@ -103,7 +103,7 @@ export default function CommitmentsPage() {
 
   function resetForm() {
     setEditingId(null)
-    setDueDate(todayISO())
+    setDueDate(todayLocalISO())
     setAmount('')
     setCategoryId('')
     setDescription('')
@@ -135,7 +135,7 @@ export default function CommitmentsPage() {
 
   function startPay(c: Commitment) {
     setPayingId(c.id)
-    setPayDate(todayISO())
+    setPayDate(todayLocalISO())
     setPayAmount(String(Math.abs(Number(c.amount))))
     setPayDescription(c.description ?? '')
   }
