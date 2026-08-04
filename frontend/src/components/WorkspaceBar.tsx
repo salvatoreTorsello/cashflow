@@ -105,12 +105,15 @@ export default function WorkspaceBar() {
     createError,
     joinWorkspace,
     joinError,
+    deleteWorkspace,
+    deleteError,
   } = useWorkspace()
   const [mode, setMode] = useState<'select' | 'creating' | 'joining'>('select')
   const [newName, setNewName] = useState('')
   const [joinCode, setJoinCode] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showShare, setShowShare] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   function handleSelectChange(e: ChangeEvent<HTMLSelectElement>) {
     if (e.target.value === '__new__') {
@@ -151,6 +154,23 @@ export default function WorkspaceBar() {
       setMode('select')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!currentWorkspace) return
+    const confirmed = window.confirm(
+      `Permanently delete "${currentWorkspace.name}"?\n\n` +
+        'This removes all its categories, transactions, and commitments, and revokes ' +
+        'access for every member — including anyone you shared it with. This cannot be undone.',
+    )
+    if (!confirmed) return
+
+    setIsDeleting(true)
+    try {
+      await deleteWorkspace(currentWorkspace.id)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -216,6 +236,17 @@ export default function WorkspaceBar() {
           </button>
         )}
 
+        {currentWorkspace?.is_owner && mode === 'select' && (
+          <button
+            className="btn-text btn-text--danger"
+            type="button"
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Deleting…' : 'Delete'}
+          </button>
+        )}
+
         <button className="btn-text" type="button" onClick={() => logout()}>
           Log out
         </button>
@@ -227,6 +258,7 @@ export default function WorkspaceBar() {
       {joinError && mode !== 'joining' && (
         <p className="async-state async-state--error">{joinError}</p>
       )}
+      {deleteError && <p className="async-state async-state--error">{deleteError}</p>}
 
       {showShare && currentWorkspace?.is_owner && <SharePanel workspaceId={currentWorkspace.id} />}
     </div>

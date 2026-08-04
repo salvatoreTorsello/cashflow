@@ -16,6 +16,8 @@ interface WorkspaceContextValue {
   createError: string | null
   joinWorkspace: (body: WorkspaceJoinRequest) => Promise<Workspace>
   joinError: string | null
+  deleteWorkspace: (id: number) => Promise<void>
+  deleteError: string | null
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null)
@@ -82,6 +84,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     },
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: api.workspaces.delete,
+    onSuccess: (_data, deletedId) => {
+      qc.setQueryData(WORKSPACES_KEY, (old: Workspace[] | undefined) =>
+        old ? old.filter((w) => w.id !== deletedId) : old,
+      )
+      if (currentId === deletedId) {
+        setCurrentId(null)
+        localStorage.removeItem(STORAGE_KEY)
+      }
+    },
+  })
+
   const currentWorkspace = workspaces?.find((w) => w.id === currentId) ?? null
 
   const value: WorkspaceContextValue = {
@@ -93,6 +108,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     createError: createMutation.error ? (createMutation.error as ApiError).message : null,
     joinWorkspace: (body) => joinMutation.mutateAsync(body),
     joinError: joinMutation.error ? (joinMutation.error as ApiError).message : null,
+    deleteWorkspace: (id) => deleteMutation.mutateAsync(id),
+    deleteError: deleteMutation.error ? (deleteMutation.error as ApiError).message : null,
   }
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>
