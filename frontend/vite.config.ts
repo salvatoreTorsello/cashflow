@@ -26,6 +26,17 @@ export default defineConfig({
       workbox: {
         // API responses change often and must stay fresh — only precache the app shell.
         navigateFallbackDenylist: [/^\/api\//],
+        // Belt-and-suspenders: navigateFallbackDenylist only affects the SPA
+        // navigation fallback, not general request interception. Without an
+        // explicit rule, Workbox's generated service worker can still take
+        // over /api/* fetches through its own runtime-caching layer — make
+        // sure those always go straight to the network, untouched.
+        runtimeCaching: [
+          {
+            urlPattern: /^\/api\//,
+            handler: 'NetworkOnly',
+          },
+        ],
       },
     }),
   ],
