@@ -17,8 +17,8 @@ const keys = {
   commitments: (workspaceId: number | null, status?: CommitmentStatus) =>
     ['commitments', workspaceId, status ?? 'all'] as const,
   dashboard: (workspaceId: number | null) => ['dashboard', workspaceId] as const,
-  predictions: (workspaceId: number | null, date?: string) =>
-    ['predictions', workspaceId, date ?? null] as const,
+  predictions: (workspaceId: number | null, date?: string, averageSalary?: number) =>
+    ['predictions', workspaceId, date ?? null, averageSalary ?? null] as const,
 }
 
 export function useCategories() {
@@ -168,12 +168,12 @@ export function useDashboard() {
   })
 }
 
-export function usePredictions(date?: string) {
+export function usePredictions(date?: string, averageSalary?: number) {
   const { currentWorkspace } = useWorkspace()
   const workspaceId = currentWorkspace?.id ?? null
   return useQuery({
-    queryKey: keys.predictions(workspaceId, date),
-    queryFn: () => api.dashboard.predictions(workspaceId!, date),
+    queryKey: keys.predictions(workspaceId, date, averageSalary),
+    queryFn: () => api.dashboard.predictions(workspaceId!, date, averageSalary),
     enabled: workspaceId !== null,
   })
 }

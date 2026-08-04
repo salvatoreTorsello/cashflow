@@ -128,9 +128,14 @@ export const api = {
   },
   dashboard: {
     get: (workspaceId: number) => request<DashboardSummary>(`/workspaces/${workspaceId}/dashboard`),
-    predictions: (workspaceId: number, date?: string) =>
-      request<PredictionResponse>(
-        `/workspaces/${workspaceId}/dashboard/predictions${date ? `?date=${date}` : ''}`,
-      ),
+    predictions: (workspaceId: number, date?: string, averageSalary?: number) => {
+      const params = new URLSearchParams()
+      if (date) params.set('date', date)
+      if (averageSalary !== undefined) params.set('average_salary', String(averageSalary))
+      const qs = params.toString()
+      return request<PredictionResponse>(
+        `/workspaces/${workspaceId}/dashboard/predictions${qs ? `?${qs}` : ''}`,
+      )
+    },
   },
 }
