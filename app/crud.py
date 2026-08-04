@@ -597,7 +597,11 @@ def _get_projected_salary_dates(
 ) -> list[date]:
     last_salary_date = _get_last_salary_date(db, workspace_id)
     if last_salary_date is None:
-        return []
+        # No salary history to anchor the recurrence to (e.g. a manual
+        # average-salary override with no real salary transactions yet) —
+        # assume a default monthly payday on the 28th, valid in every month
+        # including February, so no month-end clamping is needed.
+        last_salary_date = date(today.year, today.month, 28)
 
     next_date = last_salary_date
     while next_date <= today:
