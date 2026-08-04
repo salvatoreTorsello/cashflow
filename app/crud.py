@@ -321,7 +321,13 @@ def create_commitment(
         # Aug 5) — the anniversary date itself belongs to "year two".
         horizon = _add_months(obj.due_date, 12)
         occurrences = []
-        current = obj.due_date
+        i = 0
+        # Each occurrence is computed fresh from the original anchor date
+        # (i intervals forward), not incrementally from the previous
+        # occurrence — otherwise a short month that clamps the day (e.g. Jan
+        # 31 -> Feb 28) permanently loses the original day for every
+        # subsequent month, instead of recovering it (e.g. -> Mar 31).
+        current = _add_interval(obj.due_date, obj.interval_count * i, obj.interval_unit)
         while current < horizon:
             occurrences.append(
                 models.Commitment(
@@ -334,7 +340,8 @@ def create_commitment(
                     series_id=series.id,
                 )
             )
-            current = _add_interval(current, obj.interval_count, obj.interval_unit)
+            i += 1
+            current = _add_interval(obj.due_date, obj.interval_count * i, obj.interval_unit)
 
         db.add_all(occurrences)
         db.commit()
@@ -354,9 +361,12 @@ def create_commitment(
         db.flush()
 
         occurrences = []
-        current = obj.due_date
         total = obj.total_installments
-        for i, amount in enumerate(obj.installment_amounts, start=1):
+        # Same fresh-from-anchor computation as the periodic branch above —
+        # avoids permanently losing the original day after a short month.
+        for idx, amount in enumerate(obj.installment_amounts):
+            i = idx + 1
+            current = _add_interval(obj.due_date, obj.interval_count * idx, obj.interval_unit)
             occurrences.append(
                 models.Commitment(
                     workspace_id=workspace_id,
@@ -369,7 +379,6 @@ def create_commitment(
                     installment_number=i,
                 )
             )
-            current = _add_interval(current, obj.interval_count, obj.interval_unit)
 
         db.add_all(occurrences)
         db.commit()
@@ -448,12 +457,25 @@ def execute_commitment(
             .first()
         )
         if series and series.type == models.CommitmentType.periodic and series.is_active:
+            anchor_date = (
+                db.query(func.min(models.Commitment.due_date))
+                .filter(models.Commitment.series_id == series.id)
+                .scalar()
+            )
             max_due_date = (
                 db.query(func.max(models.Commitment.due_date))
                 .filter(models.Commitment.series_id == series.id)
                 .scalar()
             )
-            next_due = _add_interval(max_due_date, series.interval_count, series.interval_unit)
+            # Fresh from the series' original anchor date each time, not
+            # incrementally from max_due_date — otherwise a short month that
+            # clamped the day (e.g. Jan 31 -> Feb 28) would never recover it
+            # in a later, longer month (e.g. -> Mar 31).
+            i = 1
+            next_due = _add_interval(anchor_date, series.interval_count * i, series.interval_unit)
+            while next_due <= max_due_date:
+                i += 1
+                next_due = _add_interval(anchor_date, series.interval_count * i, series.interval_unit)
             db.add(
                 models.Commitment(
                     workspace_id=workspace_id,
