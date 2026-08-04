@@ -611,14 +611,22 @@ def _get_projected_salary_dates(
 
 
 def get_prediction(
-    db: Session, workspace_id: int, target_date: date | None = None, months: int = 5
+    db: Session,
+    workspace_id: int,
+    target_date: date | None = None,
+    months: int = 5,
+    average_salary_override: Decimal | None = None,
 ):
     today = date.today()
     horizon_end = _add_months(today, months)
     query_end = max(horizon_end, target_date) if target_date else horizon_end
 
     current_balance = get_balance(db, workspace_id)
-    avg_salary = get_average_salary(db, workspace_id)
+    avg_salary = (
+        average_salary_override
+        if average_salary_override is not None
+        else get_average_salary(db, workspace_id)
+    )
 
     pending_commitments = (
         db.query(models.Commitment)
